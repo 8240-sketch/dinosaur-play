@@ -1,5 +1,7 @@
 .agents
 skills-lock.json
+.gsd
+.bg-shell
 # === IDE and Editor ===
 .vs/
 .vscode/settings.json
@@ -15,6 +17,8 @@ Desktop.ini
 .claude
 CLAUDE.local.md
 production/session-logs/
+production/session-state/
+production/review-mode.txt
 
 # === Internal Planning (not for public) ===
 
@@ -41,8 +45,8 @@ dist/
 .godot/
 *.translation
 export_presets.cfg
-# Uncomment if using Godot:
-# *.import
+*.import
+addons
 
 # === Engine: Unity ===
 [Ll]ibrary/

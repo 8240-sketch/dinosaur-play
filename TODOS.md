@@ -8,9 +8,11 @@ Status: ACTIVE | Branch: main
 
 ## 第1周
 
-- [ ] 下载 Godot 4.x Standard（标准构建，非 Mono，稳定 Android 导出）
-- [ ] 安装 inkgd 插件（github.com/ephread/inkgd，AssetLib 或手动 addons/）
-- [ ] 配置 Android SDK + JDK 17
+- [x] 下载 Godot 4.6 Standard（`C:\software\Godot\Godot_v4.6-stable_win64.exe`）
+- [x] 安装 inkgd 插件（godot4 分支 v0.6.0，`mklink /J C:\code\AI\baby-play\addons\inkgd C:\code\github-project\inkgd\addons\inkgd`, `rmdir C:\code\AI\baby-play\addons\inkgd`）+ inklecate v1.2.0（`C:\software\inklecate\inklecate.exe`）
+- [x] 安装 GUT 9.6.0（Godot 4 兼容，`mklink /J C:\code\AI\baby-play\addons\gut C:\code\github-project\Gut\addons\gut`, `rmdir C:\code\AI\baby-play\addons\gut`）
+- [x] 配置 Android SDK + JDK（SDK: `C:\Users\zhang\AppData\Local\Android\Sdk`，JDK 21: Eclipse Adoptium）⚠️ 需在 Godot Editor Settings 内完成
+- [x] 配置godot-mcp（`https://github.com/Coding-Solo/godot-mcp`）
 - [ ] 实现 VocabStore.gd — schema v2（多档案，version/current_profile/profiles 结构）
 - [ ] 实现 ProfileManager.gd — get_current_profile/switch_profile/create_profile/delete_profile，最多3个档案
 - [ ] 写 `ink/chapter1_minimal.ink`（3行对话，2个选项：T-Rex / Triceratops）
