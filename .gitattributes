@@ -1,0 +1,20 @@
+# Ensure shell scripts always use LF (required for bash on all platforms)
+*.sh text eol=lf
+
+# GDScript and Ink source files use LF
+*.gd text eol=lf
+*.ink text eol=lf
+
+# All other text files: normalize to LF on commit, checkout as-is
+* text=auto
+
+# Binary assets: never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.import binary
+*.tscn text eol=lf
+*.tres text eol=lf
