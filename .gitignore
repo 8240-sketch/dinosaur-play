@@ -47,6 +47,7 @@ dist/
 export_presets.cfg
 *.import
 addons
+android
 
 # === Engine: Unity ===
 [Ll]ibrary/

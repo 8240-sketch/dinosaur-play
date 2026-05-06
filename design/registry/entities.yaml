@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: ""
+last_updated: "2026-05-06"
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -139,7 +139,43 @@ formulas: []
 #
 # Required fields: name, status, source, referenced_by, value, unit, added
 
-constants: []
+constants:
+  - name: MAX_SAVE_PROFILES
+    status: active
+    source: design/gdd/save-system.md
+    referenced_by:
+      - design/gdd/save-system.md
+      - design/gdd/profile-manager.md   # enforces the profile slot limit
+      - design/gdd/main-menu.md         # displays available profile slots
+    value: 2
+    unit: profiles
+    notes: "MVP = 2; Vertical Slice = 3. CLAUDE.md game-concept.md originally said 3 — resolved 2026-05-06 to 2 for MVP."
+    added: 2026-05-06
+    revised: ""
+
+  - name: CURRENT_SCHEMA_VERSION
+    status: active
+    source: design/gdd/save-system.md
+    referenced_by:
+      - design/gdd/save-system.md
+    value: 2
+    unit: version_number
+    notes: "v2 = MVP shipped format. v1 = dev-only. Only increases; never decreases."
+    added: 2026-05-06
+    revised: ""
+
+  - name: VOCAB_WORD_IDS_CH1
+    status: active
+    source: design/gdd/save-system.md
+    referenced_by:
+      - design/gdd/save-system.md       # migration hardcodes these keys
+      - design/gdd/vocab-store.md       # owns read/write of these keys
+      - design/gdd/parent-vocab-map.md  # displays these words on the map
+    value: '["ch1_trex", "ch1_triceratops", "ch1_eat", "ch1_run", "ch1_big"]'
+    unit: word_id_list
+    notes: "Chapter 1 vocabulary keys used as JSON object keys in vocab_progress section."
+    added: 2026-05-06
+    revised: ""
 
 # Example:
 #
