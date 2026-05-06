@@ -22,7 +22,7 @@
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
 | 1 | SaveSystem | Persistence | MVP | Approved | design/gdd/save-system.md | — |
-| 2 | ProfileManager | Persistence | MVP | Not Started | — | SaveSystem |
+| 2 | ProfileManager | Persistence | MVP | **Approved** | design/gdd/profile-manager.md | SaveSystem |
 | 3 | VocabStore | Gameplay | MVP | Not Started | — | SaveSystem, ProfileManager |
 | 4 | AnimationHandler | Core | MVP | Not Started | — | (Godot AnimationPlayer) |
 | 5 | TtsBridge | Core | MVP | Not Started | — | (Godot DisplayServer) |
@@ -33,8 +33,7 @@
 | 10 | ChoiceUI | UI | MVP | Not Started | — | StoryManager *(signal from TagDispatcher)* |
 | 11 | MainMenu | UI | MVP | Not Started | — | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Not Started | — | ProfileManager, AnimationHandler |
-| 13 | NameInputScreen (inferred) | UI | Vertical Slice | Not Started | — | ProfileManager |
-| 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Not Started | — | VoiceRecorder *(signal from TagDispatcher)* |
+| 13 | NameInputScreen (inferred) | UI | Vertical Slice | Not Started | — | ProfileManager || 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Not Started | — | VoiceRecorder *(signal from TagDispatcher)* |
 | 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Not Started | — | VocabStore |
 | 16 | PostcardGenerator | Meta | Vertical Slice | Not Started | — | VocabStore, ProfileManager |
 | 17 | ParentVocabMap | Meta | Vertical Slice | Not Started | — | VocabStore, VoiceRecorder |
@@ -122,7 +121,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) |
 | 11 | MainMenu | MVP | Presentation | S | T-Rex idle; profile indicator; 「出发冒险！」 |
 | 12 | HatchScene | VS | Presentation | S | times_played==0 gate; egg crack AnimationPlayer sequence |
-| 13 | NameInputScreen | VS | Presentation | S | 6-char max; skippable; ProfileManager.create_profile |
+| 13 | NameInputScreen | VS | Presentation | S | 20-char max (NAME_MAX_LENGTH constant); skippable; ProfileManager.create_profile |
 | 14 | RecordingInviteUI | VS | Presentation | S | signal subscriber (not TagDispatcher caller); orange circle button |
 | 15 | VocabPrimingLoader | VS | Presentation | S | tween await; queue_free pattern |
 | 16 | PostcardGenerator | VS | Polish/Output | M | **Scope: save to Pictures gallery** (not Android Share Intent); 1080×1080 |
@@ -163,11 +162,11 @@ resolved in the specified GDD before that GDD is approved.
 | # | Concern | Severity | Resolve In |
 |---|---------|----------|-----------|
 | 1 | TagDispatcher has undeclared VocabStore write dependency — which tags trigger writes, direct call vs signal? | 🔴 Significant | TagDispatcher GDD |
-| 2 | `times_played` has no declared owner — both HatchScene and StoryManager read it, who writes it? | 🔴 Significant | ProfileManager GDD (or StoryManager GDD) |
+| 2 | `times_played` has no declared owner — both HatchScene and StoryManager read it, who writes it? | ~~🔴 Significant~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
 | 3 | ChoiceUI → TagDispatcher dependency is likely inverted — should be signal subscription, not method call | 🟡 Moderate | ChoiceUI GDD |
 | 4 | RecordingInviteUI → TagDispatcher dependency is inverted — should subscribe to `recording_invite_triggered` signal | 🟡 Moderate | RecordingInviteUI GDD |
 | 5 | VoiceRecorder dual responsibility (record + playback) not declared — interface must split into record-side / playback-side sections | 🟢 Minor | VoiceRecorder GDD |
-| — | ProfileManager pre_switch_checks guard unowned — in-flight VoiceRecorder or unsaved StoryManager progress could be lost on profile switch | Structural note | ProfileManager GDD |
+| — | ProfileManager pre_switch_checks guard unowned — in-flight VoiceRecorder or unsaved StoryManager progress could be lost on profile switch | ~~Structural note~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
 
 ---
 
@@ -187,7 +186,7 @@ resolved in the specified GDD before that GDD is approved.
 ## Next Steps
 
 - [ ] `/design-system save-system` — first GDD (Foundation, unblocks all others) ✓ **APPROVED 2026-05-06**
-- [ ] `/design-system profile-manager` — second (most downstream dependents, Concern #2 owner)
+- [ ] `/design-system profile-manager` — second (most downstream dependents, Concern #2 owner) ✓ **APPROVED 2026-05-06**
 - [ ] `/design-system vocab-store` — third (unblocks StoryManager)
 - [ ] Run `/design-review design/gdd/[system].md` after each GDD is complete
 - [ ] Prototype VoiceRecorder in Week 3 Day 1 (go/no-go smoke test before writing GDD)

@@ -147,11 +147,11 @@ constants:
       - design/gdd/save-system.md
       - design/gdd/profile-manager.md   # enforces the profile slot limit
       - design/gdd/main-menu.md         # displays available profile slots
-    value: 2
+    value: 3
     unit: profiles
-    notes: "MVP = 2; Vertical Slice = 3. CLAUDE.md game-concept.md originally said 3 — resolved 2026-05-06 to 2 for MVP."
+    notes: "MVP = 3 (aligned with game-concept.md 2026-05-06). Previously set to 2 during SaveSystem GDD authoring 2026-05-06; reverted to 3 during ProfileManager CD-GDD-ALIGN resolution. Vertical Slice target: 5 (TBD)."
     added: 2026-05-06
-    revised: ""
+    revised: "2026-05-06"
 
   - name: CURRENT_SCHEMA_VERSION
     status: active
@@ -174,6 +174,18 @@ constants:
     value: '["ch1_trex", "ch1_triceratops", "ch1_eat", "ch1_run", "ch1_big"]'
     unit: word_id_list
     notes: "Chapter 1 vocabulary keys used as JSON object keys in vocab_progress section."
+    added: 2026-05-06
+    revised: ""
+
+  - name: NAME_MAX_LENGTH
+    status: active
+    source: design/gdd/profile-manager.md
+    referenced_by:
+      - design/gdd/profile-manager.md   # F-1 data layer validation, set_profile_name() enforcement
+      - design/gdd/name-input-screen.md # UI layer input limit (same value as data layer)
+    value: 20
+    unit: characters
+    notes: "Unified data-layer and UI-layer max for profile.name. CD-authorized 2026-05-06: overrides game-concept.md original 6-char limit. game-concept.md updated to reflect 20. NameInputScreen must reference this constant, not hardcode."
     added: 2026-05-06
     revised: ""
 
