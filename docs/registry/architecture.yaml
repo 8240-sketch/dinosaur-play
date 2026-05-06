@@ -30,7 +30,7 @@
 #   Superseded entries:     Grep pattern="status: superseded"
 
 version: 1
-last_updated: ""
+last_updated: "2026-05-06"
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -43,7 +43,17 @@ last_updated: ""
 # interface: how other systems access this state (read-only property, method call,
 #   signal, shared resource, etc.) — this is the contract other ADRs depend on.
 
-state_ownership: []
+state_ownership:
+  - state: ink_story_runtime
+    status: active
+    owner_system: StoryManager
+    adr: docs/architecture/adr-0001-inkgd-runtime.md
+    interface: "StoryManager signals: tags_dispatched(Array), choices_ready(Array[Dictionary]), chapter_started(String), chapter_completed(String), chapter_interrupted(String), chapter_load_failed(String); methods: begin_chapter(), submit_choice(int)"
+    write_access: StoryManager-only
+    referenced_by:
+      - docs/architecture/adr-0001-inkgd-runtime.md
+    added: 2026-05-06
+    revised: ""
 
 # Example:
 #
@@ -71,7 +81,19 @@ state_ownership: []
 #
 # pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
 
-interfaces: []
+interfaces:
+  - contract: inkgd_story_loading
+    status: active
+    pattern: direct_call
+    producer: StoryManager
+    consumers: []
+    adr: docs/architecture/adr-0001-inkgd-runtime.md
+    description: "load() on .ink.json returns InkResource (not InkStory). Must use InkStory.new(res.json, runtime) constructor. Any code that casts load() directly to InkStory will fail."
+    referenced_by:
+      - docs/architecture/adr-0001-inkgd-runtime.md
+      - design/gdd/story-manager.md
+    added: 2026-05-06
+    revised: ""
 
 # Example:
 #
@@ -131,7 +153,19 @@ performance_budgets: []
 # Register an API decision when the choice is non-obvious and other ADRs might
 # make a different choice for the same purpose without knowing this was decided.
 
-api_decisions: []
+api_decisions:
+  - purpose: ink_narrative_runtime
+    status: active
+    api: "inkgd v0.6.0 (godot4 branch) — InkResource + InkStory.new(res.json, runtime)"
+    not: "InkPlayer node (conflicts with AutoLoad lifetime); custom JSON state machine (fallback only if Android gate R1 fires)"
+    adr: docs/architecture/adr-0001-inkgd-runtime.md
+    reason: "GDScript-native; standard Ink authoring toolchain (Inky IDE + inklecate); scales to Chapter 2+ without code changes"
+    referenced_by:
+      - docs/architecture/adr-0001-inkgd-runtime.md
+      - design/gdd/story-manager.md
+      - design/gdd/tag-dispatcher.md
+    added: 2026-05-06
+    revised: ""
 
 # Example:
 #
@@ -157,7 +191,20 @@ api_decisions: []
 # Register a pattern when an ADR explicitly bans it AND other ADRs might
 # unknowingly use it (i.e., it's a tempting but wrong approach for this project).
 
-forbidden_patterns: []
+forbidden_patterns:
+  - pattern: inkgd_direct_story_cast
+    status: active
+    description: "Never cast load() directly to InkStory: `var story: InkStory = load(path)` — this fails at runtime. Must use InkResource as intermediary: `var res: InkResource = load(path); var story = InkStory.new(res.json, runtime)`"
+    why: "inkgd v0.6.0 load() returns InkResource, not InkStory. Direct cast silently produces wrong type or null. Verified from inkgd source; not documented in official API docs."
+    adr: docs/architecture/adr-0001-inkgd-runtime.md
+    added: 2026-05-06
+
+  - pattern: inkgd_is_story_complete
+    status: active
+    description: "Never reference `story.is_story_complete` — this property does NOT exist in inkgd v0.6.0. Use `!story.can_continue && story.current_choices.is_empty()` for chapter completion detection."
+    why: "is_story_complete was inferred from older inkgd versions or documentation but is absent in godot4 branch v0.6.0. Any code using it will crash with 'invalid get index' on Android."
+    adr: docs/architecture/adr-0001-inkgd-runtime.md
+    added: 2026-05-06
 
 # Example:
 #

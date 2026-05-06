@@ -29,7 +29,7 @@ VocabStore 是游戏的词汇进度数据管理层，持有并更新当前活跃
    - 若 `_vocab_data == {}`：`push_warning`，立即返回
    - 执行 `ProfileManager.flush()`（防御性落盘，确保最后一次金星结果持久化；失败仅 `push_error`，不回退内存）
    - 重置 `_session_counters`（所有词汇键清零，等同于 `begin_chapter_session()` 初始化）
-   - **调用时机约束**：仅在章节正常完结时调用（`InkStory.is_story_complete == true`）；章节中途被 `profile_switch_requested` 打断时不调用——此时由 InterruptHandler 负责紧急写盘，`_session_counters` 将在下次 `begin_chapter_session()` 时重置
+   - **调用时机约束**：仅在章节正常完结时调用（`!story.can_continue && story.current_choices.is_empty()`）；章节中途被 `profile_switch_requested` 打断时不调用——此时由 InterruptHandler 负责紧急写盘，`_session_counters` 将在下次 `begin_chapter_session()` 时重置
 
 4. **`record_event(word_id: String, event_type: EventType) -> void`（TagDispatcher 调用）**：
    - 若 `_vocab_data` 为空：`push_warning`，返回（无活跃档案时静默忽略）
@@ -85,7 +85,7 @@ VocabStore 无独立状态机——其可用性由 `_vocab_data` 是否非空决
 |---------------|------|------|
 | **TagDispatcher** | 调用 `record_event(word_id, event_type)` | 词汇展示或孩子选词时 |
 | **StoryManager** | 调用 `begin_chapter_session()` | 每局章节开始前 |
-| **StoryManager** | 调用 `end_chapter_session()` | 章节正常完结（`InkStory.is_story_complete == true`）后；中断场景不调用 |
+| **StoryManager** | 调用 `end_chapter_session()` | 章节正常完结（`!story.can_continue && story.current_choices.is_empty()`）后；中断场景不调用 |
 | **ProfileManager** | 发出 `profile_switch_requested(new_index)` | VocabStore 同步清除引用和计数 |
 | **ProfileManager** | 发出 `profile_switched(new_index)` | VocabStore 重新获取 `_vocab_data` 引用 |
 | **VocabStore** | 调用 `ProfileManager.flush()` | 每次金星颁发后 |

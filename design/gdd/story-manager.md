@@ -1,19 +1,19 @@
 # StoryManager
 
-> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; end_chapter_session() / TtsBridge dependency declared
+> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; end_chapter_session() / TtsBridge dependency declared; inkgd API corrections applied 2026-05-06 (ADR-0001)
 > **Author**: Zhang Shaocong + agents
 > **Last Updated**: 2026-05-06
 > **Implements Pillar**: P1 (看不见的学习), P2 (失败是另一条好玩的路)
 
-> **架构决策参考**: inkgd vs 自建 JSON 状态机 → See ADR-INKGD-RUNTIME（待创建）
+> **架构决策参考**: inkgd vs 自建 JSON 状态机 → ADR-0001-INKGD-RUNTIME (`docs/architecture/adr-0001-inkgd-runtime.md`, Status: Proposed)
 
 ## Overview
 
-StoryManager 是游戏叙事引擎的 AutoLoad 单例，封装 inkgd `InkStory` 运行时，将 `.ink` 脚本驱动的章节剧情转化为 GDScript 信号与数据流。它管理章节完整生命周期：`begin_chapter()` 加载故事文件并重置词汇统计，逐帧 `continue_story()` 推进叙事，解析 `current_choices` 供 ChoiceUI 渲染，识别 Ink 故事标签（`#tag`）并通过 TagDispatcher 触发 NPC 动画与 TTS 发音，最终在 `is_story_complete` 时调用 `VocabStore.end_chapter_session()` 结算本局词汇金星。每次 `begin_chapter()` 前，StoryManager 必须先调用 `VocabStore.begin_chapter_session()` 重置本局统计——这是 VocabStore 的强前置约束。
+StoryManager 是游戏叙事引擎的 AutoLoad 单例，封装 inkgd `InkStory` 运行时，将 `.ink` 脚本驱动的章节剧情转化为 GDScript 信号与数据流。它管理章节完整生命周期：`begin_chapter()` 加载故事文件并重置词汇统计，逐帧 `continue_story()` 推进叙事，解析 `current_choices` 供 ChoiceUI 渲染，识别 Ink 故事标签（`#tag`）并通过 TagDispatcher 触发 NPC 动画与 TTS 发音，最终在章节完结（`!story.can_continue && story.current_choices.is_empty()`）时调用 `VocabStore.end_chapter_session()` 结算本局词汇金星。每次 `begin_chapter()` 前，StoryManager 必须先调用 `VocabStore.begin_chapter_session()` 重置本局统计——这是 VocabStore 的强前置约束。
 
 从孩子的视角，不存在"故事系统"——只有他们的点击让 T-Rex 做出好玩的事。无论选对词还是选错词，叙事都继续向前：选对词触发 HAPPY 动画与庆祝 TTS，选错词触发 CONFUSED 动画与同样温暖的 TTS，没有失败画面、没有红叉，只有另一条有趣的路。这是 P2（失败是另一条好玩的路）的技术实现核心。P1（看不见的学习）体现于此：孩子以为自己在推进恐龙冒险，每次选词都是一次词汇接触。
 
-> **架构决策参考**: inkgd vs 自建 JSON 状态机 → See ADR-INKGD-RUNTIME（待创建）
+> **架构决策参考**: inkgd vs 自建 JSON 状态机 → ADR-0001-INKGD-RUNTIME (`docs/architecture/adr-0001-inkgd-runtime.md`, Status: Proposed)
 
 ## Player Fantasy
 
@@ -59,7 +59,7 @@ StoryManager 是 GDScript AutoLoad 单例（全局名 `StoryManager`），跨场
 
 - c. **文本发出**：读取 `_ink_story.current_text`（去首尾空白）→ emit `narration_text_ready(text: String)`。
 
-- d. **标签发出**：读取 `_ink_story.current_tags` → emit `tags_dispatched(tags: Array[String])`。TagDispatcher 订阅此信号并调用 TtsBridge.speak()（若有 vocab 标签）。
+- d. **标签发出**：读取 `_ink_story.current_tags` → emit `tags_dispatched(tags: Array)`。TagDispatcher 订阅此信号并调用 TtsBridge.speak()（若有 vocab 标签）。
 
 - e. **等待 TTS 完成**：连接一次性处理器到 `TtsBridge.speech_completed`，同时启动安全超时计时器（`NARRATION_WAIT_TIMEOUT_MS`，默认 5000ms）。无论哪个先触发（speech_completed 或超时），均继续步骤 f 并取消另一侧等待。此设计确保即使当前行无 TTS（空标签行），叙事不会永久卡住。
 
@@ -154,7 +154,7 @@ STOPPED ─── profile_switched ──► IDLE
 | **ProfileManager** | SM → 调用 | `flush()` | 无参数 | 章节完结写盘（Rule 8c） |
 | **ProfileManager** | (信号) → SM | `profile_switch_requested(new_index: int)` | 目标档案 index | 同步处理器：停止推进、清除引用、emit `chapter_interrupted` |
 | **ProfileManager** | (信号) → SM | `profile_switched(new_index: int)` | 新档案 index | 重新获取 `_story_data` 引用，状态 STOPPED → IDLE |
-| **TagDispatcher** | SM → (信号) | `tags_dispatched(tags: Array[String])` | inkgd `current_tags` 原始数组 | 每次 `continue_story()` 后（Rule 4d） |
+| **TagDispatcher** | SM → (信号) | `tags_dispatched(tags: Array)` | inkgd `current_tags` 原始数组 | 每次 `continue_story()` 后（Rule 4d） |
 | **ChoiceUI** | SM → (信号) | `choices_ready(choices: Array[Dictionary])` | `[{index, text, word_id}, ...]` | `_advance_step()` 检测到选项后（Rule 5） |
 | **ChoiceUI** | ChoiceUI → SM 调用 | `submit_choice(index: int)` | 所选 choice index | 孩子点击词汇图标时 |
 | **MainMenu** | MainMenu → SM 调用 | `begin_chapter(chapter_id, ink_json_path)` | 章节 ID + Ink 文件路径 | 孩子点击「出发冒险！」 |
@@ -178,8 +178,7 @@ chapter_complete =
 | `can_continue` | bool | inkgd：当前节点还有文本可以推进 |
 | `current_choices.size()` | int | inkgd：当前节点的选项数量（0 = 无选项） |
 
-**输出**：`bool`。为 `true` 时触发 Rule 8 章节完成序列。  
-**MVP 说明**：`is_story_complete` 作为防御性断言（预期同时为 `true`）；若 `is_story_complete == false` 而上式成立，`push_warning` 但流程继续。
+**输出**：`bool`。为 `true` 时触发 Rule 8 章节完成序列。
 
 ---
 
@@ -244,14 +243,14 @@ StoryManager 在 `begin_chapter()` 步骤 b 加载此文件，用于 `warm_cache
 | **VocabStore** | `begin_chapter_session()`；`end_chapter_session()` | `begin_chapter_session()` 在任何 `continue_story()` 之前调用（强前置约束）；`end_chapter_session()` 仅在章节正常完结时调用 |
 | **TtsBridge** | `warm_cache(word_id, text)`；`speech_completed` 信号 | `warm_cache()` 不改变 TtsBridge 状态机；`speech_completed` 每步等待（Rule 4e），安全超时为兜底 |
 | **SaveSystem**（间接） | `story_progress` schema v2 兼容性 | StoryManager 不直接调用 SaveSystem；通过 ProfileManager 读写 `story_progress` section |
-| **inkgd v0.6.0**（godot4 分支） | `InkStory` 运行时：`continue_story()`、`current_choices`、`choose_choice_index()`、`current_tags`、`can_continue`、`is_story_complete` | 加载模式和 API 稳定性见 ADR-INKGD-RUNTIME；必须使用 `godot4` 分支（非 `main` 分支） |
+| **inkgd v0.6.0**（godot4 分支） | `InkStory` 运行时：`continue_story()`、`current_choices`、`choose_choice_index()`、`current_tags`、`can_continue` | 加载模式和 API 稳定性见 ADR-INKGD-RUNTIME；必须使用 `godot4` 分支（非 `main` 分支） |
 | **Godot FileAccess** | `assets/data/vocab_ch1.json` 读取 | 文件必须在每次 `begin_chapter()` 调用时可访问；CI 须验证文件存在 |
 
 ### 下游依赖（依赖 StoryManager 的系统）
 
 | 系统 | 调用的 API | 依赖的接口契约 |
 |------|-----------|--------------|
-| **TagDispatcher** | 订阅 `tags_dispatched(tags: Array[String])` | 收到原始标签数组后解析语义；StoryManager 不解析标签含义 |
+| **TagDispatcher** | 订阅 `tags_dispatched(tags: Array)` | 收到原始标签数组后解析语义；StoryManager 不解析标签含义 |
 | **ChoiceUI** | 订阅 `choices_ready(choices: Array[Dictionary])`；调用 `submit_choice(index: int)` | `choices_ready` 中的 `index` 字段必须原样传回 `submit_choice()`；ChoiceUI 须在收到 `choices_ready` 后禁用按钮直到下次信号 |
 | **MainMenu** | 调用 `begin_chapter(chapter_id, ink_json_path)`；查询 `is_story_active: bool` | 仅在 `is_story_active == false` 时调用 `begin_chapter()` |
 | **InterruptHandler** | 订阅 `chapter_interrupted(reason: String)`；查询 `current_chapter_id: String` | 收到信号后决策是否执行紧急 `ProfileManager.flush()` |
@@ -357,11 +356,11 @@ N/A — StoryManager 不直接驱动任何 UI 节点。
 
 ## Open Questions
 
-1. **ADR-INKGD-RUNTIME（待创建）**：inkgd `InkStory` 加载 API 确认（`InkStory.new()` vs `InkPlayer` 节点模式）、Android APK 打包稳定性、JSON 降级状态机触发条件。**StoryManager 实现前必须创建此 ADR。** 使用 `/architecture-decision` 创建。
+1. ~~**ADR-INKGD-RUNTIME（待创建）**：inkgd `InkStory` 加载 API 确认、Android APK 打包稳定性、JSON 降级状态机触发条件。~~ ✅ **RESOLVED 2026-05-06** — ADR-0001 已创建：`docs/architecture/adr-0001-inkgd-runtime.md`。加载序列：`load()` → `InkResource` → `InkStory.new(res.json, runtime)`；完成检测：`!story.can_continue && story.current_choices.is_empty()`；Week 1 Android 门控定义。
 
-2. **choices_ready word_id 推导方案**：Rule 5 构建 choice 字典时需要 `word_id`，来源未确定。候选方案：(a) Ink choice text 本身即 word_id；(b) Ink choice 附加标签（如 `#word:ch1_trex`）由 TagDispatcher 解析后回传；(c) StoryManager 在 `_vocab_word_texts` 反查（`text → word_id`）。**需在 TagDispatcher GDD 中与 StoryManager 共同定义此映射协议。**
+2. ~~**choices_ready word_id 推导方案**：Rule 5 构建 choice 字典时需要 `word_id`，来源未确定。~~ ✅ **RESOLVED 2026-05-06 (TagDispatcher GDD)** — 方案 B：StoryManager 从 `InkChoice.tags` 直接提取（取第一个以 `vocab:` 开头的 3 段式标签的 parts[1]，如 `"vocab:ch1_trex:correct"` → `"ch1_trex"`）。TagDispatcher 不参与选项路由。
 
-3. **非 vocab 叙事行的 TTS 行为**：当 Ink 叙事节点无 `vocab:` 标签时，TagDispatcher 不调用 `TtsBridge.speak()`，则 `speech_completed` 不触发，StoryManager 将命中 `NARRATION_WAIT_TIMEOUT_MS`（5000ms）。若 MVP Chapter 1 所有叙事行均含 TTS 触发则此问题不存在；若有纯文本行，需在 TagDispatcher GDD 中定义"无 TTS 行"的通知机制（如 emit `no_speech_for_step` 信号）。
+3. ~~**非 vocab 叙事行的 TTS 行为**：当 Ink 叙事节点无 `vocab:` 标签时，`speech_completed` 不触发，StoryManager 将命中 5000ms 超时。~~ ✅ **RESOLVED 2026-05-06 (TagDispatcher GDD)** — TagDispatcher 在批次无 2 段式 `vocab:` 标签时 emit `tts_not_required()` 信号；StoryManager 订阅后跳过超时等待，立即继续 Rule 4f 分支判断。
 
 4. **`chapter_interrupted("app_background"/"user_back_button")` 触发者**：这两个 reason 目前在信号签名中声明，但发出者不明确。需在 InterruptHandler GDD 中确认：InterruptHandler 调用 StoryManager 某方法主动触发，还是 StoryManager 订阅 InterruptHandler 信号后自发出 `chapter_interrupted`？
 
