@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: "2026-05-06"
+last_updated: "2026-05-06"  # added HIGHLIGHT_DISPLAY_MS (TtsBridge)
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -210,6 +210,18 @@ constants:
     value: 0.8
     unit: ratio
     notes: "Minimum correct/seen ratio within one chapter play to award a gold star. Chapter 1 MVP: each word shown once per play, so ratio is 0 or 1.0 — threshold is effectively binary (selected correctly = star)."
+    added: 2026-05-06
+    revised: ""
+
+  - name: HIGHLIGHT_DISPLAY_MS
+    status: active
+    source: design/gdd/tts-bridge.md
+    referenced_by:
+      - design/gdd/tts-bridge.md        # Tier 3 timing: delay before speech_completed is emitted
+      - design/gdd/choice-ui.md         # ChoiceUI must render --highlight-pulse for this duration
+    value: 600
+    unit: milliseconds
+    notes: "Duration of Tier 3 TTS fallback: from tts_fallback_to_highlight emit to speech_completed emit. Must equal the --highlight-pulse animation duration so the visual and timing signals stay in sync. Safe range: 400–900ms. ChoiceUI --highlight-pulse animation (scale 1.0→1.10→1.0, 0.15s ease-in + 0.15s hold + 0.30s ease-out) is designed to match this value."
     added: 2026-05-06
     revised: ""
 

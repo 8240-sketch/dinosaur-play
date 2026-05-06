@@ -25,7 +25,7 @@
 | 2 | ProfileManager | Persistence | MVP | Approved | design/gdd/profile-manager.md | SaveSystem |
 | 3 | VocabStore | Gameplay | MVP | Approved | design/gdd/vocab-store.md | SaveSystem, ProfileManager |
 | 4 | AnimationHandler | Core | MVP | Approved | design/gdd/animation-handler.md | (Godot AnimationPlayer) |
-| 5 | TtsBridge | Core | MVP | Not Started | — | (Godot DisplayServer) |
+| 5 | TtsBridge | Core | MVP | Approved | design/gdd/tts-bridge.md | (Godot DisplayServer) |
 | 6 | StoryManager | Narrative | MVP | Not Started | — | VocabStore, ProfileManager |
 | 7 | TagDispatcher | Narrative | MVP | Not Started | — | StoryManager, AnimationHandler, TtsBridge, VocabStore |
 | 8 | VoiceRecorder ⚠️ | Core | Vertical Slice | Not Started | — | ProfileManager, SaveSystem |
@@ -113,7 +113,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 2 | ProfileManager | MVP | Core | M | Resolve: `times_played` owner declaration; pre_switch_checks contract — **Approved 2026-05-06** |
 | 3 | VocabStore | MVP | Core | M | schema v2 multi-profile; gold star threshold — **Approved 2026-05-06** |
 | 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine — **Approved 2026-05-06** |
-| 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback |
+| 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback — **Approved 2026-05-06** |
 | 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; times_played write |
 | 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
@@ -175,10 +175,10 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 4 |
-| Design docs reviewed | 4 |
-| Design docs approved | 4 |
-| MVP systems designed | 4 / 9 |
+| Design docs started | 5 |
+| Design docs reviewed | 5 |
+| Design docs approved | 5 |
+| MVP systems designed | 5 / 9 |
 | Vertical Slice systems designed | 0 / 9 |
 
 ---
