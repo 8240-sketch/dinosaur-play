@@ -189,6 +189,30 @@ constants:
     added: 2026-05-06
     revised: ""
 
+  - name: IS_LEARNED_THRESHOLD
+    status: active
+    source: design/gdd/vocab-store.md
+    referenced_by:
+      - design/gdd/vocab-store.md       # triggers is_learned = true
+      - design/gdd/parent-vocab-map.md  # displays learned badge when threshold reached
+    value: 3
+    unit: gold_stars
+    notes: "gold_star_count >= 3 flips is_learned to true. Requires child to correctly select word in at least 3 separate chapter plays. Random guess probability = 0.5^3 = 12.5%. MVP: no time-gap enforcement (deferred to v2 backlog)."
+    added: 2026-05-06
+    revised: ""
+
+  - name: STAR_RATIO_THRESHOLD
+    status: active
+    source: design/gdd/game-concept.md
+    referenced_by:
+      - design/gdd/game-concept.md      # original definition: correct/seen >= 0.8
+      - design/gdd/vocab-store.md       # used in gold star award formula
+    value: 0.8
+    unit: ratio
+    notes: "Minimum correct/seen ratio within one chapter play to award a gold star. Chapter 1 MVP: each word shown once per play, so ratio is 0 or 1.0 — threshold is effectively binary (selected correctly = star)."
+    added: 2026-05-06
+    revised: ""
+
 # Example:
 #
 # constants:

@@ -22,9 +22,9 @@
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
 | 1 | SaveSystem | Persistence | MVP | Approved | design/gdd/save-system.md | — |
-| 2 | ProfileManager | Persistence | MVP | **Approved** | design/gdd/profile-manager.md | SaveSystem |
-| 3 | VocabStore | Gameplay | MVP | Not Started | — | SaveSystem, ProfileManager |
-| 4 | AnimationHandler | Core | MVP | Not Started | — | (Godot AnimationPlayer) |
+| 2 | ProfileManager | Persistence | MVP | Approved | design/gdd/profile-manager.md | SaveSystem |
+| 3 | VocabStore | Gameplay | MVP | Approved | design/gdd/vocab-store.md | SaveSystem, ProfileManager |
+| 4 | AnimationHandler | Core | MVP | Approved | design/gdd/animation-handler.md | (Godot AnimationPlayer) |
 | 5 | TtsBridge | Core | MVP | Not Started | — | (Godot DisplayServer) |
 | 6 | StoryManager | Narrative | MVP | Not Started | — | VocabStore, ProfileManager |
 | 7 | TagDispatcher | Narrative | MVP | Not Started | — | StoryManager, AnimationHandler, TtsBridge, VocabStore |
@@ -109,10 +109,10 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 
 | Order | System | Priority | Layer | GDD Effort | TD/PR Notes |
 |-------|--------|----------|-------|------------|-------------|
-| 1 | SaveSystem | MVP | Foundation | S | Resolve: ProfileManager switch guard protocol |
-| 2 | ProfileManager | MVP | Core | M | Resolve: `times_played` owner declaration; pre_switch_checks contract |
-| 3 | VocabStore | MVP | Core | M | schema v2 multi-profile; gold star threshold |
-| 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine |
+| 1 | SaveSystem | MVP | Foundation | S | Resolve: ProfileManager switch guard protocol — **Approved 2026-05-06** |
+| 2 | ProfileManager | MVP | Core | M | Resolve: `times_played` owner declaration; pre_switch_checks contract — **Approved 2026-05-06** |
+| 3 | VocabStore | MVP | Core | M | schema v2 multi-profile; gold star threshold — **Approved 2026-05-06** |
+| 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine — **Approved 2026-05-06** |
 | 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback |
 | 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; times_played write |
 | 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI |
@@ -175,10 +175,10 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 1 |
-| Design docs reviewed | 1 |
-| Design docs approved | 1 |
-| MVP systems designed | 1 / 9 |
+| Design docs started | 4 |
+| Design docs reviewed | 4 |
+| Design docs approved | 4 |
+| MVP systems designed | 4 / 9 |
 | Vertical Slice systems designed | 0 / 9 |
 
 ---
