@@ -55,6 +55,18 @@ state_ownership:
     added: 2026-05-06
     revised: ""
 
+  - state: tts_provider_registry
+    status: active
+    owner_system: TtsBridge
+    adr: docs/architecture/adr-0002-tts-provider.md
+    interface: "TtsBridge.configure(provider_id, api_key, endpoint) — injects active provider; TtsBridge.speak(word_id, text) — drives HTTP via provider; PROVIDER_REGISTRY is TtsBridge-internal; other systems must not access TtsProvider directly"
+    write_access: TtsBridge-only
+    referenced_by:
+      - docs/architecture/adr-0002-tts-provider.md
+      - design/gdd/tts-bridge.md
+    added: 2026-05-06
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -92,6 +104,20 @@ interfaces:
     referenced_by:
       - docs/architecture/adr-0001-inkgd-runtime.md
       - design/gdd/story-manager.md
+    added: 2026-05-06
+    revised: ""
+
+  - contract: tts_provider_http
+    status: active
+    pattern: direct_call
+    producer: TtsBridge
+    consumers:
+      - TtsProvider (build_request_params / parse_response / classify_error)
+    adr: docs/architecture/adr-0002-tts-provider.md
+    description: "TtsBridge owns HTTPRequest node and drives all HTTP I/O. TtsProvider is a passive request-builder + response-parser (Path A). TtsProvider must NOT own or manage HTTPRequest nodes. TtsProvider emits no signals — TtsBridge emits speech_completed and tts_fallback_to_highlight."
+    referenced_by:
+      - docs/architecture/adr-0002-tts-provider.md
+      - design/gdd/tts-bridge.md
     added: 2026-05-06
     revised: ""
 
@@ -167,6 +193,30 @@ api_decisions:
     added: 2026-05-06
     revised: ""
 
+  - purpose: tts_provider_interface
+    status: active
+    api: "@abstract class TtsProvider extends RefCounted — Path A: build_request_params(text, instruction) -> Dictionary; parse_response(body: PackedByteArray) -> AudioStream; classify_error(http_code: int) -> int; configure_credentials(api_key, endpoint); is_configured() -> bool"
+    not: "Autonomous TtsProvider with speak/cancel/signals (requires Node, cannot use RefCounted); Resource-based provider config (behavioral differences require code not data)"
+    adr: docs/architecture/adr-0002-tts-provider.md
+    reason: "Path A: TtsBridge owns HTTPRequest, provider is passive data transformer. RefCounted = automatic lifecycle. @abstract = compile-time enforcement. No signals on provider = TtsBridge owns all flow control."
+    referenced_by:
+      - docs/architecture/adr-0002-tts-provider.md
+      - design/gdd/tts-bridge.md
+    added: 2026-05-06
+    revised: ""
+
+  - purpose: audiostream_construction_from_bytes
+    status: active
+    api: "AudioStreamMP3.new(); stream.data = bytes  OR  AudioStreamWAV.new(); stream.data = pcm_bytes (strip 44-byte header); stream.format = FORMAT_16_BITS; stream.mix_rate = 22050"
+    not: "AudioStreamMP3.load_from_buffer() or AudioStreamWAV.load_from_buffer() — these methods do NOT exist in Godot 4.x"
+    adr: docs/architecture/adr-0002-tts-provider.md
+    reason: "Godot 4.x uses .data property assignment, not load_from_buffer(). Verified from engine reference. Any code calling load_from_buffer() will crash at runtime."
+    referenced_by:
+      - docs/architecture/adr-0002-tts-provider.md
+      - design/gdd/tts-bridge.md
+    added: 2026-05-06
+    revised: ""
+
 # Example:
 #
 # api_decisions:
@@ -204,6 +254,20 @@ forbidden_patterns:
     description: "Never reference `story.is_story_complete` — this property does NOT exist in inkgd v0.6.0. Use `!story.can_continue && story.current_choices.is_empty()` for chapter completion detection."
     why: "is_story_complete was inferred from older inkgd versions or documentation but is absent in godot4 branch v0.6.0. Any code using it will crash with 'invalid get index' on Android."
     adr: docs/architecture/adr-0001-inkgd-runtime.md
+    added: 2026-05-06
+
+  - pattern: tts_provider_autonomous_speaker
+    status: active
+    description: "TtsProvider must NOT implement speak()/cancel() methods or emit speech_completed/speech_failed signals. It is a passive request-builder + response-parser (Path A). TtsBridge owns all HTTP I/O, flow control, and signal emission."
+    why: "Autonomous provider pattern requires TtsProvider to manage HTTPRequest Node — impossible if TtsProvider extends RefCounted. Path A (TtsBridge-owned HTTPRequest) is simpler, consistent with GDD, and avoids Node lifecycle complexity. Verified by Godot Specialist and TD review 2026-05-06."
+    adr: docs/architecture/adr-0002-tts-provider.md
+    added: 2026-05-06
+
+  - pattern: audiostream_load_from_buffer
+    status: active
+    description: "Never call `AudioStreamWAV.load_from_buffer(bytes)` or `AudioStreamMP3.load_from_buffer(bytes)` — these methods do NOT exist in Godot 4.x. Use property assignment: `var s := AudioStreamMP3.new(); s.data = bytes` or `var s := AudioStreamWAV.new(); s.data = pcm_bytes`."
+    why: "load_from_buffer() was inferred from Godot 3.x patterns or incorrect documentation. Godot 4.x uses .data property assignment. Any code calling load_from_buffer() will crash at runtime with 'invalid method'."
+    adr: docs/architecture/adr-0002-tts-provider.md
     added: 2026-05-06
 
 # Example:
