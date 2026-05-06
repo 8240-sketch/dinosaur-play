@@ -1,6 +1,6 @@
 # VocabStore
 
-> **Status**: Needs Revision (fixes applied 2026-05-06 — awaiting re-review)
+> **Status**: Approved — cross-review fixes applied 2026-05-06; `end_chapter_session()` added 2026-05-06 (StoryManager GDD requirement)
 > **Author**: Zhang Shaocong + agents
 > **Last Updated**: 2026-05-06
 > **Implements Pillar**: P3 (声音是成长日记), P4 (家长是骄傲见证者)
@@ -24,6 +24,12 @@ VocabStore 是游戏的词汇进度数据管理层，持有并更新当前活跃
 2. **`_ready()` 初始化**：同步连接 `ProfileManager.profile_switch_requested` 和 `profile_switched` 信号（无 `await`）；若 ProfileManager 已有活跃档案则立即获取 `_vocab_data` 引用并重置计数器。
 
 3. **`begin_chapter_session() -> void`（StoryManager 调用）**：重置 `_session_counters`（所有词汇键初始化为 `{seen: 0, correct: 0, star_awarded: false}`）。不接触 `_vocab_data`（持久字段不受影响）。
+
+3.1 **`end_chapter_session() -> void`（StoryManager 调用）**：
+   - 若 `_vocab_data == {}`：`push_warning`，立即返回
+   - 执行 `ProfileManager.flush()`（防御性落盘，确保最后一次金星结果持久化；失败仅 `push_error`，不回退内存）
+   - 重置 `_session_counters`（所有词汇键清零，等同于 `begin_chapter_session()` 初始化）
+   - **调用时机约束**：仅在章节正常完结时调用（`InkStory.is_story_complete == true`）；章节中途被 `profile_switch_requested` 打断时不调用——此时由 InterruptHandler 负责紧急写盘，`_session_counters` 将在下次 `begin_chapter_session()` 时重置
 
 4. **`record_event(word_id: String, event_type: EventType) -> void`（TagDispatcher 调用）**：
    - 若 `_vocab_data` 为空：`push_warning`，返回（无活跃档案时静默忽略）
@@ -79,6 +85,7 @@ VocabStore 无独立状态机——其可用性由 `_vocab_data` 是否非空决
 |---------------|------|------|
 | **TagDispatcher** | 调用 `record_event(word_id, event_type)` | 词汇展示或孩子选词时 |
 | **StoryManager** | 调用 `begin_chapter_session()` | 每局章节开始前 |
+| **StoryManager** | 调用 `end_chapter_session()` | 章节正常完结（`InkStory.is_story_complete == true`）后；中断场景不调用 |
 | **ProfileManager** | 发出 `profile_switch_requested(new_index)` | VocabStore 同步清除引用和计数 |
 | **ProfileManager** | 发出 `profile_switched(new_index)` | VocabStore 重新获取 `_vocab_data` 引用 |
 | **VocabStore** | 调用 `ProfileManager.flush()` | 每次金星颁发后 |
@@ -216,6 +223,7 @@ N/A — VocabStore 不直接驱动任何 UI 节点。父母词汇地图的渲染
 | AC-14 | `is_word_learned` 无活跃档案 | 返回 `false`（安全默认值）；`push_warning` | Unit |
 | AC-15 | `flush` 失败后内存状态保留 | `ProfileManager.flush()` 返回 `false` 时，`gold_star_count` 已递增值保留在内存中 | Unit |
 | AC-16 | `NOT_CORRECT` 不改变任何状态 | 发出 `NOT_CORRECT` 后 `seen`、`correct`、`gold_star_count` 均不变 | Unit |
+| AC-17 | `end_chapter_session()` 清零计数器 | 调用后所有词汇键 `seen=0, correct=0, star_awarded=false`；`_vocab_data` 持久字段不变；`ProfileManager.flush()` 被调用一次 | Unit |
 
 ## Open Questions
 

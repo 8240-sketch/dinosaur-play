@@ -26,8 +26,8 @@
 | 3 | VocabStore | Gameplay | MVP | Approved | design/gdd/vocab-store.md | SaveSystem, ProfileManager |
 | 4 | AnimationHandler | Core | MVP | Approved | design/gdd/animation-handler.md | (Godot AnimationPlayer) |
 | 5 | TtsBridge | Core | MVP | Approved | design/gdd/tts-bridge.md | (Godot DisplayServer) |
-| 6 | StoryManager | Narrative | MVP | Not Started | — | VocabStore, ProfileManager |
-| 7 | TagDispatcher | Narrative | MVP | Not Started | — | StoryManager, AnimationHandler, TtsBridge, VocabStore |
+| 6 | StoryManager | Narrative | MVP | Approved | design/gdd/story-manager.md | VocabStore, ProfileManager, TtsBridge |
+| 7 | TagDispatcher | Narrative | MVP | Approved | design/gdd/tag-dispatcher.md | StoryManager, AnimationHandler, TtsBridge, VocabStore |
 | 8 | VoiceRecorder ⚠️ | Core | Vertical Slice | Not Started | — | ProfileManager, SaveSystem |
 | 9 | InterruptHandler (inferred) | Core | Vertical Slice | Not Started | — | StoryManager, SaveSystem, VocabStore |
 | 10 | ChoiceUI | UI | MVP | Not Started | — | StoryManager *(signal from TagDispatcher)* |
@@ -114,8 +114,8 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 3 | VocabStore | MVP | Core | M | schema v2 multi-profile; gold star threshold — **Approved 2026-05-06** |
 | 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine — **Approved 2026-05-06** |
 | 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback — **Approved 2026-05-06** |
-| 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; times_played write |
-| 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI |
+| 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; TtsBridge dependency — **Approved 2026-05-06** |
+| 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06** |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
 | 9 | InterruptHandler | VS | Feature | S | _notification() back key / phone call / screen-off |
 | 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) |
@@ -161,7 +161,7 @@ resolved in the specified GDD before that GDD is approved.
 
 | # | Concern | Severity | Resolve In |
 |---|---------|----------|-----------|
-| 1 | TagDispatcher has undeclared VocabStore write dependency — which tags trigger writes, direct call vs signal? | 🔴 Significant | TagDispatcher GDD |
+| 1 | TagDispatcher has undeclared VocabStore write dependency — which tags trigger writes, direct call vs signal? | ~~🔴 Significant~~ ✅ **Resolved in TagDispatcher GDD 2026-05-06** | TagDispatcher GDD |
 | 2 | `times_played` has no declared owner — both HatchScene and StoryManager read it, who writes it? | ~~🔴 Significant~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
 | 3 | ChoiceUI → TagDispatcher dependency is likely inverted — should be signal subscription, not method call | 🟡 Moderate | ChoiceUI GDD |
 | 4 | RecordingInviteUI → TagDispatcher dependency is inverted — should subscribe to `recording_invite_triggered` signal | 🟡 Moderate | RecordingInviteUI GDD |
@@ -175,10 +175,10 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 5 |
-| Design docs reviewed | 5 |
-| Design docs approved | 5 |
-| MVP systems designed | 5 / 9 |
+| Design docs started | 7 |
+| Design docs reviewed | 7 |
+| Design docs approved | 7 |
+| MVP systems designed | 7 / 9 |
 | Vertical Slice systems designed | 0 / 9 |
 
 ---
