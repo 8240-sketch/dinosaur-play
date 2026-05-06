@@ -1,3 +1,7 @@
+* text=auto eol=lf
+
+.gitattributes text eol=lf
+
 # Ensure shell scripts always use LF (required for bash on all platforms)
 *.sh text eol=lf
 
@@ -5,8 +9,15 @@
 *.gd text eol=lf
 *.ink text eol=lf
 
-# All other text files: normalize to LF on commit, checkout as-is
-* text=auto
+# 文本配置文件使用 LF，保持跨平台一致性
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.cfg text eol=lf
+
+# Windows 批处理脚本保留 CRLF
+*.bat text eol=crlf
 
 # Binary assets: never touch line endings
 *.png binary
