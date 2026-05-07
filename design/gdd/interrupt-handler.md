@@ -1,8 +1,8 @@
 # InterruptHandler
 
-> **Status**: In Review
+> **Status**: Approved
 > **Author**: Zhang Shaocong + agents
-> **Last Updated**: 2026-05-07 (Revision 2)
+> **Last Updated**: 2026-05-07 (Revision 3 — /design-review RF-1~RF-8 applied)
 > **Implements Pillar**: P3 (声音是成长日记), P4 (家长是骄傲见证者) — 保全孩子当局的词汇进度
 
 ## Overview
@@ -27,9 +27,10 @@ InterruptHandler 没有任何孩子能感受到的时刻——它是纯粹的基
 InterruptHandler 是 GDScript AutoLoad 单例（全局名 `InterruptHandler`，`extends Node`），持续活跃于整个游戏生命周期，跨场景不销毁。同一时刻只有一个实例；多次中断事件通过 `_background_flush_pending` 标志防重入。节点的 `process_mode` 必须设置为 `PROCESS_MODE_ALWAYS`，确保 SceneTree 暂停时（如弹窗、过场黑屏）`_process()` 和 `_physics_process()` 仍正常运行——虽然 `_notification()` 本身不受 `process_mode` 影响（通知通过 `propagate_notification()` 遍历整棵树派发），但部分 Godot 子系统在树暂停时会抑制事件派发，保留 `PROCESS_MODE_ALWAYS` 是对未来行为变化的防御性设置。
 
 **Rule 2 — `_ready()` 初始化**
-- 订阅 `StoryManager.chapter_interrupted` 信号，处理器 `_on_chapter_interrupted(reason: String)`
+- 订阅 `StoryManager.chapter_interrupted` 信号，处理器 `_on_chapter_interrupted(reason: String)`（**连接模式：持久，非 one-shot**；IH 在整个生命周期内监听此信号）
 - 设置内部标志 `_background_flush_pending: bool = false`（防 FOCUS_OUT + PAUSED 双触发）
 - 设置内部标志 `_back_button_pending: bool = false`（返回键防重入守卫，防过渡帧内重复触发）
+- 设置内部标志 `_ih_triggered_stop: bool = false`（防止 FOCUS_IN 路径错误重置由 `profile_switch` 引起的 SM STOPPED 状态）
 
 **Rule 3 — 平台级中断检测（`_notification(what: int)`）**
 
@@ -53,8 +54,10 @@ _notification(FOCUS_OUT or PAUSED):
         if is_instance_valid(VoiceRecorder):   # 权限被拒时 VoiceRecorder 合法不可用
             VoiceRecorder.interrupt_and_commit()  # P3 保护：固化录音路径
         # VoiceRecorder 不可用时静默跳过；录音路径无法固化，flush 继续保全金星等进度
+        _ih_triggered_stop = true   # 标记本次 STOPPED 由 IH 触发，供 FOCUS_IN 路径区分 profile_switch
         StoryManager.request_chapter_interrupt("app_background")
         ↳ chapter_interrupted 信号触发 → _on_chapter_interrupted("app_background") → flush
+        # _ih_triggered_stop 保持 true，FOCUS_IN 路径将调用 confirm_navigation_complete()
     else:
         ProfileManager.flush()  # 无活跃章节时也写盘（保护 times_played 等字段）
 
@@ -62,18 +65,24 @@ _notification(WM_GO_BACK_REQUEST):                    # Android 10+ 手势导航
     if _back_button_pending: return
     if StoryManager.is_story_active:
         _back_button_pending = true
+        _ih_triggered_stop = true   # 标记本次 STOPPED 由 IH 触发
         if is_instance_valid(VoiceRecorder):
             VoiceRecorder.interrupt_and_commit()
         StoryManager.request_chapter_interrupt("user_back_button")
-        [启动 BACK_BUTTON_GUARD_TIMEOUT_MS 超时计时器]
+        [启动计时器：timer.wait_time = BACK_BUTTON_GUARD_TIMEOUT_MS / 1000.0]
+        # 注：正常路径下上一行同步触发 chapter_interrupted，_on_chapter_interrupted 已在此之前
+        # 重置 _back_button_pending = false；timer 专为 E3 异常路径（SM 未发出信号）兜底
     # is_story_active == false → 不消费，允许 Android OS 处理（最小化 App）
 
 _notification(FOCUS_IN or RESUMED):
     _background_flush_pending = false
-    # 若 SM 因 app_background 中断而停留在 STOPPED，恢复至 IDLE 允许开始新章节
+    # 若 SM 因 IH 触发的中断停留在 STOPPED，恢复至 IDLE 允许开始新章节
+    # profile_switch 引起的 STOPPED 不在此重置（_ih_triggered_stop 为 false）
     # 不执行场景导航——进程存活则保持当前场景让孩子继续游戏（GameScene 负责恢复 UI）
     if not StoryManager.is_story_active and StoryManager.current_state == StoryManager.State.STOPPED:
-        StoryManager.confirm_navigation_complete()
+        if _ih_triggered_stop:
+            _ih_triggered_stop = false
+            StoryManager.confirm_navigation_complete()
 ```
 
 **Rule 4 — 返回键处理（`_unhandled_input(event: InputEvent)`）**
@@ -81,8 +90,11 @@ _notification(FOCUS_IN or RESUMED):
 仅在 `StoryManager.is_story_active == true` 时拦截 `ui_cancel`（Android back button）。执行顺序（必须按此序，不可调换）：
 1. `get_viewport().set_input_as_handled()` — 防止 OS 执行进程退出（**必须最先执行**）
 2. 若 `is_instance_valid(VoiceRecorder)`：调用 `VoiceRecorder.interrupt_and_commit()` — P3 保护：固化录音路径；VoiceRecorder 不可用时静默跳过
-3. 调用 `StoryManager.request_chapter_interrupt("user_back_button")`
-4. `_on_chapter_interrupted("user_back_button")` 经由信号回调执行 flush + 导航
+3. `_back_button_pending = true`（在 `request_chapter_interrupt()` 之前置位，防过渡帧重复触发）
+4. `_ih_triggered_stop = true`（标记本次 STOPPED 由 IH 触发，FOCUS_IN 路径依赖此标志）
+5. 调用 `StoryManager.request_chapter_interrupt("user_back_button")`
+6. 启动超时计时器：`timer.wait_time = BACK_BUTTON_GUARD_TIMEOUT_MS / 1000.0`（E3 防永久锁定；**注**：正常路径下步骤 5 同步触发 `chapter_interrupted` 信号，`_on_chapter_interrupted()` 已在本步骤执行之前将 `_back_button_pending` 重置为 `false`；timer 专为 SM 异常路径设计，到期时若 `_back_button_pending` 仍为 `true` 则强制重置并 `push_warning`）
+7. `_on_chapter_interrupted("user_back_button")` 经由信号回调执行 flush + 导航（正常路径已在步骤 6 之前完成；SM 异常时由步骤 6 timer 兜底解锁）
 
 当 `StoryManager.is_story_active == false` 时：**不消费事件**，允许当前场景节点或 Android OS 处理（MainMenu 可自行响应 back 键最小化 App）。
 
@@ -94,13 +106,13 @@ _notification(FOCUS_IN or RESUMED):
 
 订阅 `StoryManager.chapter_interrupted` 信号，根据 reason 分支：
 
-| reason | ProfileManager.flush() | 场景导航 |
-|--------|----------------------|---------|
-| `"app_background"` | ✅ 调用 | 不导航（用户自行回来） |
-| `"user_back_button"` | ✅ 调用 | `get_tree().change_scene_to_file(MAIN_MENU_PATH)` |
-| `"profile_switch"` | ❌ 不调用 | 不导航（ProfileManager switch 序列步骤 e 已 flush） |
+| reason | 标志操作 | ProfileManager.flush() | 场景导航 |
+|--------|---------|----------------------|---------|
+| `"app_background"` | `_ih_triggered_stop` 保持 `true`（FOCUS_IN 时调用 `confirm_navigation_complete()`） | ✅ 调用 | 不导航（用户自行回来） |
+| `"user_back_button"` | `_back_button_pending = false`（flush 之前）；导航成功后 `_ih_triggered_stop = false` | ✅ 调用 | `get_tree().change_scene_to_file(MAIN_MENU_PATH)` |
+| `"profile_switch"` | `_ih_triggered_stop = false`（阻止 FOCUS_IN 错误重置 SM STOPPED） | ❌ 不调用 | 不导航（ProfileManager switch 序列步骤 e 已 flush） |
 
-> `get_tree().change_scene_to_file()` 在 Godot 4 中内部延迟至帧末执行，在 `_unhandled_input` 中直接调用安全，无需 `call_deferred`。实现时须检查返回值：`var err = get_tree().change_scene_to_file(MAIN_MENU_PATH)`；若 `err != OK`，`push_error` 记录失败并**跳过** `confirm_navigation_complete()` 调用（导航未发生，SM 无需从 STOPPED 重置）。导航返回 OK 后，IH 须立即调用 `StoryManager.confirm_navigation_complete()`，将 SM 状态从 STOPPED 重置为 IDLE，防止 SM 永久锁死（见 OQ-4）。
+> `get_tree().change_scene_to_file()` 在 Godot 4 中内部延迟至帧末执行，在 `_unhandled_input` 中直接调用安全，无需 `call_deferred`。实现时须检查返回值：`var err = get_tree().change_scene_to_file(MAIN_MENU_PATH)`；若 `err != OK`，`push_error` 记录失败并**跳过** `confirm_navigation_complete()` 和 `_ih_triggered_stop = false` 的调用（导航未发生，`_ih_triggered_stop` 保持 `true`，后续 FOCUS_IN 路径仍可恢复 SM IDLE，见 E9）。导航返回 OK 后，IH 须立即调用 `StoryManager.confirm_navigation_complete()` 并重置 `_ih_triggered_stop = false`，将 SM 状态从 STOPPED 重置为 IDLE，防止 SM 永久锁死（见 OQ-4）。
 
 **Rule 6 — `StoryManager.request_chapter_interrupt(reason: String)` — SM 补充方法（OQ-4 解析）**
 
@@ -132,8 +144,19 @@ InterruptHandler 维护两个防重入布尔标志，无持久状态机：
 | 事件 | 标志变化 |
 |------|---------|
 | 返回键触发（`WM_GO_BACK_REQUEST` / `ui_cancel`）且章节活跃 | `false → true` |
-| `_on_chapter_interrupted()` 收到 `chapter_interrupted` 信号 | `true → false` |
+| `_on_chapter_interrupted("user_back_button")` 收到信号 | `true → false`（Rule 5 表格 `"user_back_button"` 行前置操作） |
 | `BACK_BUTTON_GUARD_TIMEOUT_MS` 超时（SM 未发出信号） | `true → false`（强制重置 + `push_warning`） |
+
+**`_ih_triggered_stop`**（防止 FOCUS_IN 路径错误重置 `profile_switch` 引起的 SM STOPPED）：
+
+| 事件 | 标志变化 |
+|------|---------|
+| IH 调用 `request_chapter_interrupt("app_background")` | `false → true` |
+| IH 调用 `request_chapter_interrupt("user_back_button")`（Rule 4 步骤 4） | `false → true` |
+| `_on_chapter_interrupted("app_background")`（flush 完成） | 不变（保持 `true`，供 FOCUS_IN 路径使用） |
+| `_on_chapter_interrupted("user_back_button")`（导航成功后） | `true → false` |
+| FOCUS_IN 路径调用 `confirm_navigation_complete()` 后 | `true → false` |
+| `_on_chapter_interrupted("profile_switch")` | `true → false`（阻止 FOCUS_IN 错误重置由 profile_switch 引起的 STOPPED） |
 
 ### Interactions with Other Systems
 
@@ -222,7 +245,8 @@ on_foreground_notification():
 | E6 | back button 在 HatchScene（首次启动）按下，`is_story_active == false` | `is_story_active == false` → IH 不拦截；HatchScene 或 Android OS 处理 back button | HatchScene GDD 定义是否响应 back button |
 | E7 | 快速连按两次 back button | 首次：消费事件 + 调用 `request_chapter_interrupt("user_back_button")` + SM 转 STOPPED；第二次：`is_story_active == false` → IH 不拦截，事件透传 | 无。逻辑自洽 |
 | E8 | 无活跃档案（ProfileManager 处于 `NO_ACTIVE_PROFILE`）时 app 后台 | IH 直接调用 `ProfileManager.flush()`；PM `flush()` 在 `NO_ACTIVE_PROFILE` 状态下返回 `false`，不执行写盘。无副作用 | 无需额外处理 |
-| E9 | `user_back_button` 触发场景切换，`change_scene_to_file()` 失败（`err != OK`），SM 保持 STOPPED；用户随后按 Home 键后返回，触发 FOCUS_IN | IH 在 FOCUS_IN 时检测 SM.STOPPED，调用 `confirm_navigation_complete()` 将 SM 重置为 IDLE。当前场景仍为 GameScene（切换未发生），SM 与场景不同步——GameScene 须对 SM.IDLE 状态有鲁棒 UI 处理（同 E4 契约） | `change_scene_to_file()` 失败时须 `push_error`；后续 FOCUS_IN 恢复路径与 E4 相同，GameScene 恢复 UI 覆盖层兜底处理 |
+| E9 | `user_back_button` 触发场景切换，`change_scene_to_file()` 失败（`err != OK`），SM 保持 STOPPED；用户随后按 Home 键后返回，触发 FOCUS_IN | IH 在 FOCUS_IN 时检测 `_ih_triggered_stop == true` 且 SM.STOPPED，调用 `confirm_navigation_complete()` 将 SM 重置为 IDLE。当前场景仍为 GameScene（切换未发生），SM 与场景不同步——GameScene 须对 SM.IDLE 状态有鲁棒 UI 处理（同 E4 契约） | `change_scene_to_file()` 失败时须 `push_error`；后续 FOCUS_IN 恢复路径与 E4 相同，GameScene 恢复 UI 覆盖层兜底处理 |
+| E10 | SM 处于 COMPLETING 状态时发生 FOCUS_OUT/PAUSED 后台中断 | `is_story_active == false` → IH 直接调用 `ProfileManager.flush()`。此时 `end_chapter_session()` 尚未完成，`completed_chapters` 通关标记可能未写入本次 flush（下次 session 可重新完成本章节）。已获得的词汇金星（RUNNING/CHOICE_PENDING 阶段已写入 ProfileManager 内存）不受影响。**设计决策**：接受此低概率丢失风险（极端场景下 P4 通关标记可能缺席一次）；或 IH 在检测到 COMPLETING 时监听 `chapter_completed` 信号再 flush（增加复杂度，可在 GameScene GDD 设计时评估） | 无。IH 按现有规则执行；chapter completion 标记风险已知且接受 |
 
 ## Dependencies
 
@@ -285,7 +309,9 @@ InterruptHandler 无其他数值调参项。所有时序参数（如 ProfileMana
 | AC-8 | 快速连续触发两次 FOCUS_OUT，flush 只调用一次；FOCUS_IN 后再次 FOCUS_OUT，flush 再次调用一次 | F-3 | 单元测试 |
 | AC-9 | `StoryManager.request_chapter_interrupt()` 在 SM 非 RUNNING/CHOICE_PENDING 状态被调用时，`chapter_interrupted` 信号不发出，IH 不导航 | Rule 6 + E3 | 单元测试 |
 | AC-10 | InterruptHandler 作为 AutoLoad 在整个游戏生命周期保持单一实例，场景切换后实例不销毁 | Rule 1 | 集成测试 |
-| AC-11 | back button 触发 `request_chapter_interrupt()` 后，`_back_button_pending` 置 `true`；`_on_chapter_interrupted()` 收到信号后置 `false`；若 `BACK_BUTTON_GUARD_TIMEOUT_MS` 超时仍未收到信号，`_back_button_pending` 强制重置为 `false` 并记录 `push_warning` | Rule 4 + E3 + BACK_BUTTON_GUARD_TIMEOUT_MS | 单元测试 |
+| AC-11a | 章节进行中连续两次触发 back button，间隔在 `BACK_BUTTON_GUARD_TIMEOUT_MS` 窗口内，`chapter_interrupted` 信号只发出一次（guard 防重入有效） | Rule 4 + E3 | 集成测试 |
+| AC-11b | back button 触发后，等待 `BACK_BUTTON_GUARD_TIMEOUT_MS + 100ms`，再次触发 back button 可正常执行完整中断序列（`chapter_interrupted` 再次发出，guard 已解锁） | Rule 4 + E3 | 集成测试 |
+| AC-11c | SM 处于 COMPLETING 状态时触发 back button，`chapter_interrupted` 信号不发出，`BACK_BUTTON_GUARD_TIMEOUT_MS` 超时后 `push_warning` 被记录，此后 back button 恢复响应 | Rule 4 + E3 + BACK_BUTTON_GUARD_TIMEOUT_MS | 集成测试 |
 | AC-12 | 章节处于 COMPLETING 状态（`is_story_active == false`）时 app 后台，IH 不调用 `request_chapter_interrupt()`，直接调用 `ProfileManager.flush()`；flush 成功保留已获得的词汇金星 | Rule 3 | 集成测试 |
 | AC-13 | app 后台中断（SM 转 STOPPED）后恢复前台（FOCUS_IN/RESUMED），SM 状态恢复为 IDLE，`begin_chapter()` 可正常调用，游戏不进入死锁 | Rule 3 FOCUS_IN 分支 | 集成测试 |
 | AC-14a | 章节进行中后台中断（FOCUS_OUT/PAUSED 路径），`VoiceRecorder.interrupt_and_commit()` 在 `StoryManager.request_chapter_interrupt()` 之前被调用（调用顺序正确） | Rule 3 + P3 数据契约 | 集成测试 |
@@ -293,18 +319,23 @@ InterruptHandler 无其他数值调参项。所有时序参数（如 ProfileMana
 | AC-15 | `WM_GO_BACK_REQUEST` 通知触发时，`is_story_active == true`：章节中断（SM 转 STOPPED）、ProfileManager flush、场景导航至 MainMenu 全部执行 | Rule 3 | 手动测试（Android 10+ 手势导航设备） |
 | AC-16 | `WM_GO_BACK_REQUEST` 通知触发时，`is_story_active == false`：IH 不处理（不 flush、不导航），Android OS 正常最小化 App | Rule 3 | 手动测试（Android 10+ 手势导航设备） |
 | AC-17 | `user_back_button` 导航完成后，`confirm_navigation_complete()` 被调用，SM 状态为 IDLE，随后 `begin_chapter()` 可正常调用（SM 未锁死） | Rule 5 + OQ-4 | 集成测试 |
+| AC-18 | `change_scene_to_file()` 返回 `err != OK`（场景路径错误或文件缺失）→ `push_error` 记录，不调用 `confirm_navigation_complete()`，`_ih_triggered_stop` 保持 `true`，SM 维持 STOPPED；后续 FOCUS_IN 路径可将 SM 恢复为 IDLE（E9 恢复路径有效） | Rule 5 + E9 | 单元测试 |
+| AC-19 | `ProfileManager.flush()` 返回 `false`（磁盘满等异常）→ `push_error` 记录，IH 无崩溃，无孩子可见错误提示，中断流程完成 | Rule 5 + E2 | 单元测试 |
+| AC-20 | VoiceRecorder `is_instance_valid() == false`（权限被拒降级场景）→ 中断流程跳过 VoiceRecorder，继续执行 `request_chapter_interrupt()` 和 `flush()`，无崩溃 | Rule 3/4 | 单元测试 |
+| AC-21 | 超时计时器 `wait_time` 属性值在 2.9–3.1 秒范围内（验证 `BACK_BUTTON_GUARD_TIMEOUT_MS / 1000.0` 换算正确，防止 3000 秒 bug） | Tuning Knobs | 单元测试 |
 
 ## Open Questions
 
 | # | 问题 | 影响 | 待处理时机 |
 |---|------|------|-----------|
-| OQ-1 | `StoryManager.request_chapter_interrupt()` 和 `confirm_navigation_complete()` 方法已在本 GDD Rule 6 / Rule 5 完整定义——需在 `story-manager.md` 中补充这两个方法 | StoryManager GDD 与 IH GDD 存在短暂不同步 | IH GDD 批准后立即执行 |
+| OQ-1 | ~~`StoryManager.request_chapter_interrupt()` 和 `confirm_navigation_complete()` 方法已在本 GDD Rule 6 / Rule 5 完整定义——需在 `story-manager.md` 中补充这两个方法~~ ✅ **RESOLVED**：story-manager.md 2026-05-07 patch 已补充 Rule 13（`request_chapter_interrupt`）和 Rule 14（`confirm_navigation_complete`） | — | — |
 | OQ-2 | `MAIN_MENU_PATH` 路径需在 MainMenu GDD（#11）确认后核对一致 | path 不匹配将导致运行时跳转失败 | MainMenu GDD 设计时确认 |
 | OQ-3 | E4 中 SM 从后台恢复后保持 STOPPED——是否需要在 GameScene 或 MainMenu 增加「上次中断提示」UI？ | 用户体验设计决策，不影响 IH 本身 | ChoiceUI / MainMenu GDD 中考虑 |
-| OQ-4 | `StoryManager.confirm_navigation_complete()` 方法定义：IH 导航后调用，将 SM 从 STOPPED 重置为 IDLE，防止游戏死锁。此方法必须在 story-manager.md 中补充 | 不实现将导致 back button 中断后 SM 永久停留 STOPPED，游戏无法继续 | IH GDD 批准后与 OQ-1 同步处理 |
+| OQ-4 | ~~`StoryManager.confirm_navigation_complete()` 方法定义：IH 导航后调用，将 SM 从 STOPPED 重置为 IDLE，防止游戏死锁。此方法必须在 story-manager.md 中补充~~ ✅ **RESOLVED**：story-manager.md 2026-05-07 patch Rule 14 已定义此方法 | — | — |
 | OQ-5 | Godot 4 默认 Input Map 的 `ui_cancel` 动作仅映射 KEY_ESCAPE，不包含 Android KEY_BACK。在 Godot 编辑器 Project Settings → Input Map 中必须将 KEY_BACK 加入 `ui_cancel` 动作，否则 `_unhandled_input` 中的 `ui_cancel` 检测在真机上完全失效 | back button 中断逻辑在真机上静默失效，IH 不拦截任何事件 | 实现 IH 前在 Project Settings 验证并补充 |
 | OQ-6 | `VoiceRecorder.interrupt_and_commit()` 接口契约待 VoiceRecorder GDD（#8）确认：方法须同步完成（无 `await`）或在合理时间窗口内保证录音路径写入 VocabStore；若 VoiceRecorder 尚未录制则为 no-op | VoiceRecorder GDD 未确认前，P3 录音路径保全路径存在接口假设风险 | VoiceRecorder GDD 设计时与本 GDD 对齐 |
-| OQ-7 | `StoryManager.current_state` 属性需暴露为公开只读属性（供 FOCUS_IN 恢复路径检测 STOPPED 状态）；当前 SM GDD 未明确 `current_state` 的可见性 | FOCUS_IN SM 恢复逻辑依赖此属性；若不暴露需通过其他机制实现 STOPPED 检测 | IH GDD 批准后在 story-manager.md 更新时同步确认 |
+| OQ-7 | ~~`StoryManager.current_state` 属性需暴露为公开只读属性（供 FOCUS_IN 恢复路径检测 STOPPED 状态）；当前 SM GDD 未明确 `current_state` 的可见性~~ ✅ **RESOLVED**：story-manager.md 2026-05-07 patch Interactions 表已将 `current_state: State` 列为 public 只读属性 | — | — |
 | OQ-8 | 进程被 Android 杀死后冷启动，是否应在 MainMenu 显示「上次有正在进行的游戏，想继续吗？」提示？ | 若设计决策为"是"，需在 MainMenu/GameRoot GDD 中定义：检测 `story_progress.last_played_chapter` 非空时显示提示；此场景不在 IH 范围内（进程被杀时 IH 不存在） | MainMenu GDD（#11）或 GameRoot GDD 设计时确认 |
+| OQ-9 | **[DECISION REQUIRED]** back button 是否需要确认层防止 4 岁孩子误触？**方案 A（推荐）**：IH emit `exit_confirmation_requested` 信号 → GameScene 渲染「T-Rex 想留下来！」覆盖层，由孩子确认后 IH 执行 `change_scene_to_file()`（P2 Anti-Pillar 合规；需 GameScene GDD 声明此信号订阅契约，IH Rule 4/5 需同步更新导航路径）。**方案 B**：维持即时跳转，接受 Anti-Pillar P2 在 back button 路径上的轻微违反。此决策不做出，GameScene GDD 无法完整定义 back button UI 契约 | 4 岁误触率高；若选方案 A，GameScene GDD 和 IH Rule 4/5 需同步更新；若选方案 B 需明确记录 P2 例外 | **GameScene GDD（#10 之前）必须解决此问题** |
 
 > ~~StoryManager OQ-4~~（由谁触发 `chapter_interrupted("app_background"/"user_back_button")`）已在本 GDD 中解析：InterruptHandler 调用 `StoryManager.request_chapter_interrupt(reason)`，SM 作为唯一信号发出方。✅ RESOLVED。
