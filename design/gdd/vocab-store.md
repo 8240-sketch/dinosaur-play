@@ -1,8 +1,8 @@
 # VocabStore
 
-> **Status**: Approved — cross-review fixes applied 2026-05-06; `end_chapter_session()` added 2026-05-06 (StoryManager GDD requirement)
+> **Status**: Approved — cross-review fixes applied 2026-05-06; `end_chapter_session()` added 2026-05-06 (StoryManager GDD requirement); /design-review fixes applied 2026-05-07 (RF-1~RF-5: SELECTED_CORRECT double-increment fix, float cast note, first_star_at formula unified, AC-18/19/20 added, OQ-5 VoiceRecorder binding)
 > **Author**: Zhang Shaocong + agents
-> **Last Updated**: 2026-05-06
+> **Last Updated**: 2026-05-07
 > **Implements Pillar**: P3 (声音是成长日记), P4 (家长是骄傲见证者)
 
 ## Overview
@@ -11,7 +11,7 @@ VocabStore 是游戏的词汇进度数据管理层，持有并更新当前活跃
 
 ## Player Fantasy
 
-孩子第一次选对「Triceratops」，词汇地图上那颗星悄然亮起——这是孩子不会描述但会记住的一刻。家长六个月后点开那颗星，听见的是孩子当时细小清亮的声音——这是家长不会忘记的一刻。这两个时刻都由 VocabStore 撑起：金星的出现依赖 `gold_star_count` 与 `is_learned` 的精确维护，录音回放与词汇的对应依赖 `first_star_at` 时间戳将那次朗读永久绑定到那颗星上。VocabStore 本身没有玩家幻想；它是幻想得以成立的前提。
+孩子第一次选对「Triceratops」，词汇地图上那颗星悄然亮起——这是孩子不会描述但会记住的一刻。家长六个月后点开那颗星，听见的是孩子当时细小清亮的声音——这是家长不会忘记的一刻。这两个时刻都由 VocabStore 撑起：金星的出现依赖 `gold_star_count` 与 `is_learned` 的精确维护，录音回放与词汇的对应依赖 `first_star_at` 时间戳将那次朗读永久绑定到那颗星上（*此绑定的具体时序和降级行为待 VoiceRecorder GDD 设计后确认，见 OQ-5*）。VocabStore 本身没有玩家幻想；它是幻想得以成立的前提。
 
 ## Detailed Design
 
@@ -36,8 +36,8 @@ VocabStore 是游戏的词汇进度数据管理层，持有并更新当前活跃
    - 若 `word_id` 不在 `VOCAB_WORD_IDS_CH1`：`push_error`，返回
    - `PRESENTED`：`_session_counters[word_id].seen += 1`
    - `SELECTED_CORRECT`：
-     - a. `seen += 1`（选中即已展示）；`correct += 1`
-     - b. 若 `star_awarded == false` 且 `seen > 0` 且 `correct / seen >= STAR_RATIO_THRESHOLD`：
+     - a. `correct += 1`（`seen` 由 `PRESENTED` 事件唯一负责；`SELECTED_CORRECT` 不递增 `seen`）
+     - b. 若 `star_awarded == false` 且 `seen > 0` 且 `float(correct) / float(seen) >= STAR_RATIO_THRESHOLD`：
        - `_vocab_data[word_id].gold_star_count += 1`
        - 若 `first_star_at == null`：设 `first_star_at = Time.get_datetime_string_from_system(true) + "Z"`
        - `star_awarded = true`（本局此词不再重复颁星）
@@ -111,7 +111,9 @@ star_awarded_this_play(word_id) =
 | `session_star_awarded[word_id]` | bool | {false, true} | 本局此词是否已颁星（单局上限） |
 | `STAR_RATIO_THRESHOLD` | float | 0.0–1.0（当前 0.8） | 最低正确率阈值 |
 
-**MVP 实际值**：Chapter 1 每词每局仅展示一次，故 `correct/seen ∈ {0.0, 1.0}`；公式等效为"这词选对了就颁星"。
+**MVP 实际值**：Chapter 1 每词每局仅展示一次，故 `PRESENTED` 触发 `seen=1`，选对后 `correct=1`；`correct/seen = 1.0 >= 0.8`；公式等效为"这词选对了就颁星"。
+
+> ⚠️ **实现注意（GDScript）**：`session_correct` 和 `session_seen` 均为 `int`。GDScript 中 `int / int` 返回 `int`（截断，非四舍五入）：例如 `4 / 5 = 0` 而非 `0.8`，比较 `0 >= 0.8` 为 `false`，静默不颁星。实现时**必须**使用 `float(session_correct) / float(session_seen)`。Chapter 1 因每词每局恰好 `1/1=1` 而幸免，Chapter 2+ 多次展示场景将在未类型转换的代码中全面静默失效。
 
 **输出**：`bool`。为 `true` 时执行 `gold_star_count += 1`。
 
@@ -137,11 +139,11 @@ is_learned(word_id) = gold_star_count[word_id] >= IS_LEARNED_THRESHOLD
 ### `first_star_at` 写入规则
 
 ```
-if gold_star_count == 1 and first_star_at == null:
+if first_star_at == null:
     first_star_at = UTC_ISO8601_timestamp
 ```
 
-**单调写入**：仅在首次颁星时写入；后续所有星不覆盖此字段。格式与 SaveSystem 统一：`Time.get_datetime_string_from_system(true) + "Z"`。
+**单调写入**：仅在 `first_star_at` 为 null 时写入；后续所有星不覆盖此字段。Formulas 章节与 Detailed Design Rule 4.b 保持一致（已去除早期草稿中的 `gold_star_count == 1` 额外守卫——该守卫在数据修复或迁移后 `gold_star_count > 1` 时会导致时间戳永久缺失）。格式与 SaveSystem 统一：`Time.get_datetime_string_from_system(true) + "Z"`。
 
 ## Edge Cases
 
@@ -154,7 +156,7 @@ if gold_star_count == 1 and first_star_at == null:
 | E5 | **`is_learned` 已为 `true`，`gold_star_count` 继续增加** | `is_learned` 不变（单调）；`gold_star_count` 继续 `+= 1`；仅重复发出 `gold_star_awarded`，不再发出 `word_learned` | ParentVocabMap 读取 `gold_star_count` 显示「认出了 N 次」，与 `is_learned` 状态独立显示 |
 | E6 | **章节中途 profile 切换**（`profile_switch_requested` 打断进行中的章节） | `_vocab_data = {}`；`_session_counters = {}`；进行中的局面计数全部丢弃；ProfileManager 切换流程继续 | StoryManager 在 `profile_switch_requested` 处理器中停止故事推进；UI 回到档案选择界面 |
 | E7 | **`begin_chapter_session()` 未被调用就开始发 `record_event`** | `_session_counters` 可能残留上一局数据；`star_awarded` 可能已为 `true` 导致本局无法颁星 | **StoryManager 必须在每局开始前调用 `begin_chapter_session()`**；VocabStore 不做自动检测 |
-| E8 | **`SELECTED_CORRECT` 在 `PRESENTED` 之前到达**（TagDispatcher 事件顺序错误） | 规则 4.a：`SELECTED_CORRECT` 同时递增 `seen` 和 `correct`；`seen = 1, correct = 1`；公式仍成立（1/1=1.0 >= 0.8）；正常颁星 | TagDispatcher 应按展示→选择顺序发事件；但 VocabStore 设计可容忍乱序 |
+| E8 | **`SELECTED_CORRECT` 在 `PRESENTED` 之前到达**（TagDispatcher 事件顺序错误） | 规则 4.a：`SELECTED_CORRECT` 只递增 `correct`，不递增 `seen`；若 `PRESENTED` 尚未到达则 `seen=0, correct=1`；守卫 `seen > 0` 阻止颁星；当 `PRESENTED` 随后到达时 `seen=1`，但 `PRESENTED` 不触发颁星条件 → **本局此词不颁星**（非静默成功，而是静默跳过） | TagDispatcher 必须按展示→选择顺序发事件；乱序时本局词汇金星资格丢失，TagDispatcher 侧的测试应捕获此问题 |
 | E9 | **`_vocab_data` 中某词缺少字段**（schema 不完整） | 按 GDScript `dict.get(key, default)` 读取；缺失字段视为默认值（`gold_star_count: 0`，`first_star_at: null`，`is_learned: false`）；写入时补填缺失字段 | SaveSystem 迁移（`_migrate_to_v2`）负责在 load 时补填所有字段；此为二次防护 |
 | E10 | **首次安装，词汇数据全为默认值** | `_vocab_data["ch1_trex"]["gold_star_count"] = 0`；所有公开查询返回安全默认值；`begin_chapter_session()` 正常重置计数器 | 无需特殊处理；与已有档案流程相同 |
 
@@ -224,6 +226,9 @@ N/A — VocabStore 不直接驱动任何 UI 节点。父母词汇地图的渲染
 | AC-15 | `flush` 失败后内存状态保留 | `ProfileManager.flush()` 返回 `false` 时，`gold_star_count` 已递增值保留在内存中 | Unit |
 | AC-16 | `NOT_CORRECT` 不改变任何状态 | 发出 `NOT_CORRECT` 后 `seen`、`correct`、`gold_star_count` 均不变 | Unit |
 | AC-17 | `end_chapter_session()` 清零计数器 | 调用后所有词汇键 `seen=0, correct=0, star_awarded=false`；`_vocab_data` 持久字段不变；`ProfileManager.flush()` 被调用一次 | Unit |
+| AC-18 | 失败路径：`correct/seen < STAR_RATIO_THRESHOLD` | 场景：5 次 `PRESENTED` 后 3 次 `SELECTED_CORRECT`（ratio=3/5=0.6 < 0.8）→ `gold_star_awarded` 不发出；`gold_star_count` 不变；`star_awarded` 保持 `false` | Unit |
+| AC-19 | `word_learned` 单次发出保证 | `gold_star_count` 超过 `IS_LEARNED_THRESHOLD` 后继续颁星（第 4、5 颗）→ `word_learned` 只在第 3 颗星时发出一次；第 4、5 颗星时不再发出；`is_learned` 保持 `true` | Unit |
+| AC-20 | 完整双局生命周期 | 局 1：`begin_chapter_session()` → `PRESENTED` → `SELECTED_CORRECT`（颁星）→ `end_chapter_session()`；局 2：`begin_chapter_session()` → `_session_counters` 全零（`seen=0, correct=0, star_awarded=false`）；`_vocab_data.gold_star_count` 保留局 1 结果；`ProfileManager.flush()` 在 `end_chapter_session()` 中恰好调用一次 | Integration |
 
 ## Open Questions
 
@@ -234,3 +239,10 @@ N/A — VocabStore 不直接驱动任何 UI 节点。父母词汇地图的渲染
 3. **`begin_chapter_session()` 的幂等性**：若 StoryManager 在章节进行中因故再次调用 `begin_chapter_session()`（如章节重置），计数器将被清零，进行中的颁星资格丢失。是否需要防重调用的标志位？留待 StoryManager GDD 定义调用语义时确认。
 
 4. **词汇全覆盖约束（待 StoryManager/TagDispatcher GDD 承接）**：`is_learned` 依赖 `SELECTED_CORRECT` 事件，若某词在所有可达 Ink 路径中始终只作为错误选项，该词的金星经济结构性不可达。**5 个词汇均须在至少一条玩家可达路径中可作为正确选项被触发**——此约束必须成为 Ink 剧本结构和 TagDispatcher GDD 的验收标准之一（参见 gdd-cross-review-2026-05-06b.md § D-1）。
+
+5. **VoiceRecorder 绑定约束（待 VoiceRecorder GDD 承接）**：VocabStore 持有 `recording_path`（只读，由 VoiceRecorder 写入），但以下三个约束尚未设计，VoiceRecorder GDD（#8）必须明确：
+   - (a) **`recording_path` 写入时机**：孩子开始录音时、录音结束时、还是 `interrupt_and_commit()` 时写入？
+   - (b) **`recording_path == null` 的降级行为**：孩子从未录音时（`recording_path == null`），家长词汇地图如何呈现对应词汇的星？
+   - (c) **多局录音覆盖规则**：孩子在第 2 局录音时，`recording_path` 是否覆盖第 1 局？哪局的录音被视为与 `first_star_at` 绑定的"第一次"？
+   
+   在 VoiceRecorder GDD 批准前，Player Fantasy 中"将朗读永久绑定到那颗星上"的描述为待验证前提。
