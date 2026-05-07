@@ -115,7 +115,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine — **Approved 2026-05-06** |
 | 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback — **Approved 2026-05-06** |
 | 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; TtsBridge dependency — **Approved 2026-05-06** |
-| 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06** |
+| 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06**; /design-review RF-1~RF-6 applied 2026-05-07 (VALID_ANIM_STATES fix, record:invite 3-segment, P2 cross-doc anchor, AC-13b+N1~N4) |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
 | 9 | InterruptHandler | VS | Feature | S | _notification() back key / phone call / screen-off |
 | 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) |
