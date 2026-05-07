@@ -118,7 +118,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06**; /design-review RF-1~RF-6 applied 2026-05-07 (VALID_ANIM_STATES fix, record:invite 3-segment, P2 cross-doc anchor, AC-13b+N1~N4) |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
 | 9 | InterruptHandler | VS | Feature | S | _notification() back key / phone call / screen-off |
-| 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) — **Approved 2026-05-07**; SM patch applied (choices_ready chinese_text, vocab_ch1.json nested format) |
+| 10 | ChoiceUI | MVP | Presentation | S | 96dp buttons; signal subscriber (not TagDispatcher caller) — **Approved 2026-05-07**; SM patch applied (choices_ready chinese_text, vocab_ch1.json nested format); /design-review RF-1~RF-8 applied (P2 fix, B1/B2, N3, layout 96dp) |
 | 11 | MainMenu | MVP | Presentation | S | T-Rex idle; profile indicator; 「出发冒险！」 |
 | 12 | HatchScene | VS | Presentation | S | times_played==0 gate; egg crack AnimationPlayer sequence |
 | 13 | NameInputScreen | VS | Presentation | S | 20-char max (NAME_MAX_LENGTH constant); skippable; ProfileManager.create_profile |
