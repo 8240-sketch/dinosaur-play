@@ -30,7 +30,7 @@
 | 7 | TagDispatcher | Narrative | MVP | Approved | design/gdd/tag-dispatcher.md | StoryManager, AnimationHandler, TtsBridge, VocabStore |
 | 8 | VoiceRecorder ⚠️ | Core | Vertical Slice | Not Started | — | ProfileManager, SaveSystem |
 | 9 | InterruptHandler (inferred) | Core | Vertical Slice | Approved | design/gdd/interrupt-handler.md | StoryManager, SaveSystem, VocabStore |
-| 10 | ChoiceUI | UI | MVP | Not Started | — | StoryManager *(signal from TagDispatcher)* |
+| 10 | ChoiceUI | UI | MVP | Approved | design/gdd/choice-ui.md | StoryManager, TtsBridge |
 | 11 | MainMenu | UI | MVP | Not Started | — | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Not Started | — | ProfileManager, AnimationHandler |
 | 13 | NameInputScreen (inferred) | UI | Vertical Slice | Not Started | — | ProfileManager || 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Not Started | — | VoiceRecorder *(signal from TagDispatcher)* |
@@ -118,7 +118,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06**; /design-review RF-1~RF-6 applied 2026-05-07 (VALID_ANIM_STATES fix, record:invite 3-segment, P2 cross-doc anchor, AC-13b+N1~N4) |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
 | 9 | InterruptHandler | VS | Feature | S | _notification() back key / phone call / screen-off |
-| 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) |
+| 10 | ChoiceUI | MVP | Presentation | S | 80dp buttons; signal subscriber (not TagDispatcher caller) — **Approved 2026-05-07**; SM patch applied (choices_ready chinese_text, vocab_ch1.json nested format) |
 | 11 | MainMenu | MVP | Presentation | S | T-Rex idle; profile indicator; 「出发冒险！」 |
 | 12 | HatchScene | VS | Presentation | S | times_played==0 gate; egg crack AnimationPlayer sequence |
 | 13 | NameInputScreen | VS | Presentation | S | 20-char max (NAME_MAX_LENGTH constant); skippable; ProfileManager.create_profile |
@@ -163,7 +163,7 @@ resolved in the specified GDD before that GDD is approved.
 |---|---------|----------|-----------|
 | 1 | TagDispatcher has undeclared VocabStore write dependency — which tags trigger writes, direct call vs signal? | ~~🔴 Significant~~ ✅ **Resolved in TagDispatcher GDD 2026-05-06** | TagDispatcher GDD |
 | 2 | `times_played` has no declared owner — both HatchScene and StoryManager read it, who writes it? | ~~🔴 Significant~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
-| 3 | ChoiceUI → TagDispatcher dependency is likely inverted — should be signal subscription, not method call | 🟡 Moderate | ChoiceUI GDD |
+| 3 | ChoiceUI → TagDispatcher dependency is likely inverted — should be signal subscription, not method call | ~~🟡 Moderate~~ ✅ **Resolved in ChoiceUI GDD 2026-05-07** | ChoiceUI GDD |
 | 4 | RecordingInviteUI → TagDispatcher dependency is inverted — should subscribe to `recording_invite_triggered` signal | 🟡 Moderate | RecordingInviteUI GDD |
 | 5 | VoiceRecorder dual responsibility (record + playback) not declared — interface must split into record-side / playback-side sections | 🟢 Minor | VoiceRecorder GDD |
 | — | ProfileManager pre_switch_checks guard unowned — in-flight VoiceRecorder or unsaved StoryManager progress could be lost on profile switch | ~~Structural note~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
