@@ -1,6 +1,6 @@
 # StoryManager
 
-> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; end_chapter_session() / TtsBridge dependency declared; inkgd API corrections applied 2026-05-06 (ADR-0001); IH interface patch applied 2026-05-07 (Rule 13/14, current_state, OQ-4 resolved); /design-review RF-1~RF-7 applied 2026-05-07
+> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; end_chapter_session() / TtsBridge dependency declared; inkgd API corrections applied 2026-05-06 (ADR-0001); IH interface patch applied 2026-05-07 (Rule 13/14, current_state, OQ-4 resolved); /design-review RF-1~RF-7 applied 2026-05-07; RF-cross-6 applied 2026-05-07 (TagDispatcher set_vocab_text_map() added to Rule 3c + Interactions table)
 > **Last Updated**: 2026-05-07
 > **Implements Pillar**: P1 (看不见的学习), P2 (失败是另一条好玩的路)
 
@@ -42,9 +42,10 @@ StoryManager 是 GDScript AutoLoad 单例（全局名 `StoryManager`），跨场
 
 - b. **词汇文字映射加载**：从 `res://assets/data/vocab_ch1.json` 加载 `_vocab_word_texts: Dictionary`（格式：`{"ch1_trex": "T-Rex", "ch1_triceratops": "Triceratops", ...}`）。加载失败 → `push_error`，状态 `ERROR`，立即转 `IDLE` 返回。此文件是 `warm_cache()` 的必要前置。
 
-- c. **TtsBridge 预热 + VocabStore 重置**（同帧完成）：
+- c. **TtsBridge 预热 + VocabStore 重置 + TagDispatcher 注入**（同帧完成）：
   - 调用 `VocabStore.begin_chapter_session()`（强前置约束：在任何 `continue_story()` 或 `tags_dispatched` 发出之前调用）
   - 对 `VOCAB_WORD_IDS_CH1` 全部 5 词调用 `TtsBridge.warm_cache(word_id, _vocab_word_texts[word_id])`（静默预热，不阻断后续流程）
+  - 调用 `TagDispatcher.set_vocab_text_map(_vocab_word_texts)`（为 `record:invite:<word_id>` 标签的 word_text 查询提供映射；步骤 b 成功加载后立即注入）
 
 - d. **InkStory 加载**：状态转为 `LOADING`；保存 `_current_chapter_id = chapter_id`；从 `ink_json_path` 加载已编译的 `.ink.json` 文件（加载模式见 ADR-INKGD-RUNTIME）：
   - 成功 → 状态转为 `RUNNING`；emit `chapter_started(chapter_id: String)`；立即调用 `_advance_step()`
@@ -189,6 +190,7 @@ STOPPED ─── confirm_navigation_complete() ──► IDLE
 | **ProfileManager** | SM → 调用 | `flush()` | 无参数 | 章节完结写盘（Rule 8c） |
 | **ProfileManager** | (信号) → SM | `profile_switch_requested(new_index: int)` | 目标档案 index | 同步处理器：停止推进、清除引用、emit `chapter_interrupted` |
 | **ProfileManager** | (信号) → SM | `profile_switched(new_index: int)` | 新档案 index | 重新获取 `_story_data` 引用，状态 STOPPED → IDLE |
+| **TagDispatcher** | SM → 调用 | `set_vocab_text_map(map: Dictionary)` | `_vocab_word_texts`（词汇 ID→文字映射） | `begin_chapter()` 步骤 c，词汇文字映射加载（步骤 b）成功后立即注入 |
 | **TagDispatcher** | SM → (信号) | `tags_dispatched(tags: Array)` | inkgd `current_tags` 原始数组 | 每次 `continue_story()` 后（Rule 4d） |
 | **TagDispatcher** | (信号) → SM | `tts_not_required()` | 无参数 | 本叙事行无 `vocab:` 标签时，TagDispatcher 跳过 TTS 直接 emit；SM 订阅后 `call_deferred("_advance_step")` 继续推进（Rule 4e） |
 | **ChoiceUI** | SM → (信号) | `choices_ready(choices: Array[Dictionary])` | `[{index, text, word_id}, ...]` | `_advance_step()` 检测到选项后（Rule 5） |

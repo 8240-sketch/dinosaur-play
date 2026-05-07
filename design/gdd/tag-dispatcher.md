@@ -1,13 +1,13 @@
 # TagDispatcher
 
-> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; Core Rule 8 P2 Anti-Pillar 表述精确化
+> **Status**: Approved — CD-GDD-ALIGN APPROVED 2026-05-06; Core Rule 8 P2 Anti-Pillar 表述精确化; /design-review fixes applied 2026-05-07 (RF-1~RF-5: VALID_ANIM_STATES corrected, record:invite→3-segment format, AC-13b + AC-N1~N4 added)
 > **Author**: Zhang Shaocong + agents
-> **Last Updated**: 2026-05-06
+> **Last Updated**: 2026-05-07
 > **Implements Pillar**: P1 (看不见的学习), P2 (失败是另一条好玩的路)
 
 ## Overview
 
-TagDispatcher 是 Ink 叙事事件的翻译层和中央分发总线。它订阅 StoryManager 的 `tags_dispatched(tags: Array[String])` 信号，将 inkgd 原始标签字符串（格式：`"prefix:value"` 或 `"prefix:value:result"`）解析为具体系统调用：`anim:<state>` 标签触发 `AnimationHandler` 的语义方法（`play_happy()`、`play_confused()` 等）；2 段式 `vocab:<word_id>` 标签触发 `TtsBridge.speak()` 发音并调用 `VocabStore.record_event(PRESENTED)`；3 段式 `vocab:<word_id>:correct` / `vocab:<word_id>:not_correct` 标签（出现在孩子选词后的叙事继续中）调用 `VocabStore.record_event(SELECTED_CORRECT)` 或 `VocabStore.record_event(NOT_CORRECT)`；`record:invite` 标签通过 `recording_invite_triggered(word_id, word_text)` 信号通知 RecordingInviteUI。
+TagDispatcher 是 Ink 叙事事件的翻译层和中央分发总线。它订阅 StoryManager 的 `tags_dispatched(tags: Array[String])` 信号，将 inkgd 原始标签字符串（格式：`"prefix:value"` 或 `"prefix:value:result"`）解析为具体系统调用：`anim:<state>` 标签触发 `AnimationHandler` 的语义方法（`play_happy()`、`play_confused()` 等）；2 段式 `vocab:<word_id>` 标签触发 `TtsBridge.speak()` 发音并调用 `VocabStore.record_event(PRESENTED)`；3 段式 `vocab:<word_id>:correct` / `vocab:<word_id>:not_correct` 标签（出现在孩子选词后的叙事继续中）调用 `VocabStore.record_event(SELECTED_CORRECT)` 或 `VocabStore.record_event(NOT_CORRECT)`；`record:invite:<word_id>` 标签通过 `recording_invite_triggered(word_id, word_text)` 信号通知 RecordingInviteUI。
 
 choices_ready payload 中的 `word_id` 字段由 StoryManager 从 `InkChoice.tags` 直接提取，不经 TagDispatcher；ChoiceUI 直接订阅 `StoryManager.choices_ready`。
 
@@ -35,7 +35,7 @@ TagDispatcher 还解决 StoryManager 的一个开放问题：当前叙事行无 
 | `vocab:<word_id>:correct` | `vocab:ch1_trex:correct` | `VocabStore.record_event(word_id, SELECTED_CORRECT)` |
 | `vocab:<word_id>:not_correct` | `vocab:ch1_trex:not_correct` | `VocabStore.record_event(word_id, NOT_CORRECT)` |
 | `anim:<state>` | `anim:happy` | `_animation_handler.play_<state>()` (is_instance_valid 防护) |
-| `record:invite` | `record:invite` | emit `recording_invite_triggered(word_id, word_text)` |
+| `record:invite:<word_id>` | `record:invite:ch1_trex` | emit `recording_invite_triggered(word_id, word_text)`；word_id 直接从标签第三段提取，word_text 从 `_vocab_text_map[word_id]` 查询 |
 | 其他格式 | — | `push_warning`，跳过；不中断批次 |
 
 4. **批次处理与 tts_not_required**：按数组顺序处理所有标签。整个批次处理完毕后，若未发现任何 2 段式 `vocab:` 标签，emit `tts_not_required()` 通知 StoryManager 跳过 5000ms TTS 等待。
@@ -46,7 +46,7 @@ TagDispatcher 还解决 StoryManager 的一个开放问题：当前叙事行无 
 
 7. **VocabStore 写入契约**：直接调用 `VocabStore.record_event(word_id, event_type)`（两者均 AutoLoad）。不通过信号路由。
 
-8. **不向展示层传播对/错（P2 Anti-Pillar 保护）**：TagDispatcher 不向展示层（动画 / TTS / UI）传播对/错区分——`anim:happy` 和 `anim:confused` 照单全收，无条件分支。`vocab:correct` / `vocab:not_correct` 标签映射为 VocabStore 的中性学习数据（`SELECTED_CORRECT` / `NOT_CORRECT`）；Anti-P2-b（禁止负面计分统计）的执行责任在 VocabStore GDD，不在 TagDispatcher。
+8. **不向展示层传播对/错（P2 Anti-Pillar 保护）**：TagDispatcher 不向展示层（动画 / TTS / UI）传播对/错区分——`anim:happy` 和 `anim:confused` 照单全收，无条件分支。`vocab:correct` / `vocab:not_correct` 标签映射为 VocabStore 的中性学习数据（`SELECTED_CORRECT` / `NOT_CORRECT`）；Anti-P2-b（禁止负面计分统计）的执行责任在 VocabStore GDD，不在 TagDispatcher。**跨文档约束**：AnimationHandler GDD 的 Interactions 表须声明 `play_happy()` 和 `play_confused()` 由 `anim:happy` / `anim:confused` Ink 标签驱动，而非由选词结果（SELECTED_CORRECT / NOT_CORRECT）驱动——这是 P2 保护的文档锚点，防止开发者从 AnimationHandler GDD 出发实现时建立错误的 correct→happy 耦合。
 
 ### States and Transitions
 
@@ -88,11 +88,11 @@ parse_tag(raw: String) -> TagAction:
         2:
             if parts[0] == "vocab"  → VOCAB_PRESENT(word_id=parts[1])
             if parts[0] == "anim"   → ANIM(state=parts[1])
-            if parts[0] == "record" and parts[1] == "invite" → RECORD_INVITE
             else → UNKNOWN_TAG(push_warning)
         3:
             if parts[0] == "vocab" and parts[2] == "correct"     → VOCAB_CORRECT(word_id=parts[1])
             if parts[0] == "vocab" and parts[2] == "not_correct" → VOCAB_NOT_CORRECT(word_id=parts[1])
+            if parts[0] == "record" and parts[1] == "invite"     → RECORD_INVITE(word_id=parts[2])
             else → UNKNOWN_TAG(push_warning)
         _ → UNKNOWN_TAG(push_warning)
 ```
@@ -114,7 +114,7 @@ if NOT has_vocab_present(tags_batch):
 |---|---------|-------------------|-----------|
 | E1 | **`_animation_handler` 为 null 时收到 `anim:` 标签** | `is_instance_valid` 防护：`push_warning`，跳过；不中断批次 | 场景须在 `_ready()` 注册 AnimationHandler；TagDispatcher 容错不崩溃 |
 | E2 | **场景卸载后未调用 `set_animation_handler(null)`** | `is_instance_valid` 检查旧引用为 false → 同 E1 处理 | 场景须在 `_exit_tree()` 清除；即使忘记，TagDispatcher 也不会崩溃 |
-| E3 | **`vocab_text_map` 为空时收到 `record:invite`** | `recording_invite_triggered(word_id, "")` — word_text 为空字符串；`push_warning` | StoryManager 须在 `begin_chapter()` 前调用 `set_vocab_text_map()`；RecordingInviteUI 须容忍空字符串 |
+| E3 | **`vocab_text_map` 为空或不含该 word_id 时收到 `record:invite:<word_id>`** | word_id 直接从标签提取（不受 map 影响）；`word_text = _vocab_text_map.get(word_id, "")`；emit `recording_invite_triggered(word_id, "")` — word_text 为空字符串；`push_warning` | StoryManager 须在 `begin_chapter()` 步骤 c 后调用 `set_vocab_text_map()`；RecordingInviteUI 须容忍空字符串 |
 | E4 | **未知 `anim:` 状态**（如 `anim:fly`，AnimationHandler 不支持） | 调用 `_animation_handler.play_fly()`；若方法不存在 GDScript 报错；TagDispatcher 不额外处理 | AnimationHandler 须为所有词汇表内 state 定义 `play_<state>()` 方法；Ink 作者只使用已定义 state |
 | E5 | **同一批次多个 2 段式 `vocab:` 标签**（理论上 Ink 作者失误） | 逐一处理：每个均触发 `TtsBridge.speak()` + PRESENTED；TtsBridge 新 speak() 中断前一个发音 | Ink 作者须保证每行至多一个 2 段式 vocab: 标签；TagDispatcher 不做重复检测 |
 | E6 | **`vocab:<word_id>:correct` 在无 PRESENTED 之前到达** | 直接调用 `VocabStore.record_event(word_id, SELECTED_CORRECT)`；VocabStore 规则 4.a 可容忍乱序 | 正常 Ink 流程先出现 2 段式 PRESENTED 再出现 3 段式 SELECTED；TagDispatcher 容错不崩溃 |
@@ -155,7 +155,7 @@ TagDispatcher 自身无数值旋钮，但持有两个可配置的词汇表常量
 
 | 旋钮名 | 当前值 | 安全范围 | 影响 |
 |--------|--------|---------|------|
-| `VALID_ANIM_STATES` | `["happy", "confused", "story_advance", "idle", "hatch_crack", "hatch_emerge", "recording_listen", "ending_wave"]` | 与 AnimationHandler 词汇表保持同步 | 可用于 `anim:` state 前置校验；不校验则由 AnimationHandler 方法缺失时报错 |
+| `VALID_ANIM_STATES` | `["happy", "confused", "story_advance", "idle", "hatch_crack", "hatch_idle", "menu_idle", "recording_invite", "ending_wave"]` | 与 AnimationHandler `play_<state>()` 公开方法精确同步（`hatch_emerge` 和 `recording_listen` 由链式动画自动触发，无对应公开方法） | 可用于 `anim:` state 前置校验；不校验则由 AnimationHandler 方法缺失时报错 |
 | **标签格式版本（隐式）** | 2 段式 `"prefix:value"` / 3 段式 `"prefix:value:result"` | 与 `.ink` 文件作者约定一致 | 格式变更须同步更新 parse_tag 算法和所有 `.ink` 脚本 |
 
 *注：TtsBridge 的 speak() 行为旋钮、VocabStore 的阈值常量均属各自系统管辖。TagDispatcher 不拥有这些值。*
@@ -179,15 +179,20 @@ N/A — TagDispatcher 不驱动任何 UI 节点。RecordingInviteUI 的显示由
 | AC-3 | 发出 `vocab:ch1_trex:not_correct`（3 段式） | `VocabStore.record_event("ch1_trex", NOT_CORRECT)` 被调用；TtsBridge.speak 不被调用 | Unit |
 | AC-4 | 发出 `anim:happy`，AnimationHandler 已注册 | `_animation_handler.play_happy()` 被调用 | Unit |
 | AC-5 | 发出 `anim:confused`，AnimationHandler 未注册（null） | `push_warning` 记录；play_confused() 不被调用；无崩溃 | Unit |
-| AC-6 | 发出 `record:invite`，vocab_text_map 已注入 | `recording_invite_triggered("ch1_trex", "<词汇文字>")` 信号发出 | Unit |
-| AC-7 | 发出 `record:invite`，vocab_text_map 为空 | `recording_invite_triggered("ch1_trex", "")` 发出；`push_warning` 记录 | Unit |
+| AC-6 | 发出 `record:invite:ch1_trex`，vocab_text_map 已注入 | `recording_invite_triggered("ch1_trex", "<词汇文字>")` 信号发出（word_id 直接来自标签第三段） | Unit |
+| AC-7 | 发出 `record:invite:ch1_trex`，vocab_text_map 为空 | `recording_invite_triggered("ch1_trex", "")` 发出（word_id 仍正确提取）；`push_warning` 记录 | Unit |
 | AC-8 | 批次含 1 个 2 段式 `vocab:` 标签 | 处理完毕后 `tts_not_required` 信号**不**发出 | Unit |
 | AC-9 | 批次无任何 2 段式 `vocab:` 标签（含 3 段式或仅 `anim:`） | 处理完毕后 `tts_not_required` 信号发出 | Unit |
 | AC-10 | 空数组批次 | `tts_not_required` 发出；无任何系统调用；无崩溃 | Unit |
 | AC-11 | 未知标签格式（如 `"unknown_prefix:xyz"`） | `push_warning` 记录；不中断批次后续标签处理 | Unit |
 | AC-12 | AnimationHandler 注册后场景卸载（引用失效） | `is_instance_valid` 防护触发：`push_warning`，不崩溃 | Unit |
 | AC-13 | `anim:confused` 与 `anim:happy` 处理对称性 | 两者均执行对应 AnimationHandler 方法，无任何额外判断或拦截（P2 Anti-Pillar 验证） | Unit |
+| AC-13b | 批次 `[vocab:ch1_trex:not_correct, anim:happy]` 处理 | `play_happy()` 被调用；NOT_CORRECT 结果不抑制、不重定向 `anim:happy` 标签执行（P2 运行时路径验证） | Unit |
 | AC-14 | 同一批次多个不同标签 | 每个均独立执行，顺序与数组一致；无标签被跳过 | Unit |
+| AC-N1 | 混合 2+3 段 vocab 批次：`[vocab:ch1_trex, vocab:ch1_trex:correct]` | `TtsBridge.speak("ch1_trex")` 被调用（2 段）；`VocabStore.record_event("ch1_trex", SELECTED_CORRECT)` 被调用（3 段）；两者均执行；`tts_not_required` 信号不发出 | Unit |
+| AC-N2 | 2 段式 `vocab:` 空 word_id（即字面量 `"vocab:"`） | `push_error` 记录；`TtsBridge.speak()` 不被调用；`VocabStore.record_event()` 不被调用；批次继续处理后续标签 | Unit |
+| AC-N3 | `anim:` 非法 state（不在 VALID_ANIM_STATES 中，如 `anim:hatch_emerge`） | `push_error` 记录；AnimationHandler 方法不被调用；无崩溃；批次继续处理后续标签 | Unit |
+| AC-N4 | 4 段式标签（如 `vocab:ch1_trex:correct:extra`） | `push_warning` 记录；走 UNKNOWN_TAG 降级路径；`VocabStore.record_event()` 不被调用 | Unit |
 
 ## Open Questions
 
