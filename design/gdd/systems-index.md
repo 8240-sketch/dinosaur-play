@@ -29,7 +29,7 @@
 | 6 | StoryManager | Narrative | MVP | Approved | design/gdd/story-manager.md | VocabStore, ProfileManager, TtsBridge |
 | 7 | TagDispatcher | Narrative | MVP | Approved | design/gdd/tag-dispatcher.md | StoryManager, AnimationHandler, TtsBridge, VocabStore |
 | 8 | VoiceRecorder ⚠️ | Core | Vertical Slice | Not Started | — | ProfileManager, SaveSystem |
-| 9 | InterruptHandler (inferred) | Core | Vertical Slice | Not Started | — | StoryManager, SaveSystem, VocabStore |
+| 9 | InterruptHandler (inferred) | Core | Vertical Slice | Approved | design/gdd/interrupt-handler.md | StoryManager, SaveSystem, VocabStore |
 | 10 | ChoiceUI | UI | MVP | Not Started | — | StoryManager *(signal from TagDispatcher)* |
 | 11 | MainMenu | UI | MVP | Not Started | — | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Not Started | — | ProfileManager, AnimationHandler |
@@ -175,11 +175,11 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 7 |
-| Design docs reviewed | 7 |
-| Design docs approved | 7 |
+| Design docs started | 8 |
+| Design docs reviewed | 8 |
+| Design docs approved | 8 |
 | MVP systems designed | 7 / 9 |
-| Vertical Slice systems designed | 0 / 9 |
+| Vertical Slice systems designed | 1 / 9 |
 
 ---
 
