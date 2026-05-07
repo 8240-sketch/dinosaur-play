@@ -28,8 +28,8 @@
 | 5 | TtsBridge | Core | MVP | Approved | design/gdd/tts-bridge.md | (Godot DisplayServer) |
 | 6 | StoryManager | Narrative | MVP | Approved | design/gdd/story-manager.md | VocabStore, ProfileManager, TtsBridge |
 | 7 | TagDispatcher | Narrative | MVP | Approved | design/gdd/tag-dispatcher.md | StoryManager, AnimationHandler, TtsBridge, VocabStore |
-| 8 | VoiceRecorder ⚠️ | Core | Vertical Slice | Not Started | — | ProfileManager, SaveSystem |
-| 9 | InterruptHandler (inferred) | Core | Vertical Slice | Approved | design/gdd/interrupt-handler.md | StoryManager, SaveSystem, VocabStore |
+| 8 | VoiceRecorder | Core | Vertical Slice | Approved | design/gdd/voice-recorder.md | ProfileManager, SaveSystem |
+| 9 | InterruptHandler (inferred) | Core | Vertical Slice | Approved | design/gdd/interrupt-handler.md | StoryManager, SaveSystem, VocabStore, VoiceRecorder（软依赖） |
 | 10 | ChoiceUI | UI | MVP | Approved | design/gdd/choice-ui.md | StoryManager, TtsBridge |
 | 11 | MainMenu | UI | MVP | Not Started | — | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Not Started | — | ProfileManager, AnimationHandler |
@@ -82,7 +82,7 @@
 1. **StoryManager** — depends on: VocabStore, ProfileManager
 2. **TagDispatcher** — depends on: StoryManager, AnimationHandler, TtsBridge, VocabStore
 3. **VoiceRecorder** — depends on: ProfileManager, SaveSystem
-4. **InterruptHandler** — depends on: StoryManager, SaveSystem, VocabStore
+4. **InterruptHandler** — depends on: StoryManager, SaveSystem, VocabStore, VoiceRecorder（软依赖，is_instance_valid 守卫）
 
 ### Presentation Layer (depends on Features)
 
@@ -165,7 +165,7 @@ resolved in the specified GDD before that GDD is approved.
 | 2 | `times_played` has no declared owner — both HatchScene and StoryManager read it, who writes it? | ~~🔴 Significant~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
 | 3 | ChoiceUI → TagDispatcher dependency is likely inverted — should be signal subscription, not method call | ~~🟡 Moderate~~ ✅ **Resolved in ChoiceUI GDD 2026-05-07** | ChoiceUI GDD |
 | 4 | RecordingInviteUI → TagDispatcher dependency is inverted — should subscribe to `recording_invite_triggered` signal | 🟡 Moderate | RecordingInviteUI GDD |
-| 5 | VoiceRecorder dual responsibility (record + playback) not declared — interface must split into record-side / playback-side sections | 🟢 Minor | VoiceRecorder GDD |
+| 5 | VoiceRecorder GDD dual responsibility declared in Core Rule 2 | ~~🟢 Minor~~ ✅ **Resolved in VoiceRecorder GDD 2026-05-07** | VoiceRecorder GDD |
 | — | ProfileManager pre_switch_checks guard unowned — in-flight VoiceRecorder or unsaved StoryManager progress could be lost on profile switch | ~~Structural note~~ ✅ **Resolved in ProfileManager GDD 2026-05-06** | ProfileManager GDD |
 
 ---
@@ -175,11 +175,11 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 8 |
-| Design docs reviewed | 8 |
-| Design docs approved | 8 |
+| Design docs started | 9 |
+| Design docs reviewed | 9 |
+| Design docs approved | 9 |
 | MVP systems designed | 7 / 9 |
-| Vertical Slice systems designed | 1 / 9 |
+| Vertical Slice systems designed | 2 / 9 |
 
 ---
 
