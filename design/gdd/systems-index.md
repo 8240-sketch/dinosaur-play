@@ -37,7 +37,7 @@
 | 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Approved | design/gdd/vocab-priming-loader.md | VocabStore |
 | 16 | PostcardGenerator | Meta | Vertical Slice | Approved | design/gdd/postcard-generator.md | VocabStore, ProfileManager |
 | 17 | ParentVocabMap | Meta | Vertical Slice | Approved with Conditions | design/gdd/parent-vocab-map.md | VocabStore, VoiceRecorder, ProfileManager |
-| 18 | Chapter2Teaser | Meta | Vertical Slice | Not Started | — | (none) |
+| 18 | Chapter2Teaser | Meta | Vertical Slice | Approved | design/gdd/chapter2-teaser.md | (none) |
 
 ---
 
@@ -126,7 +126,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 15 | VocabPrimingLoader | VS | Presentation | S | tween await; queue_free pattern |
 | 16 | PostcardGenerator | VS | Polish/Output | M | **Scope: save to Pictures gallery** (not Android Share Intent); 1080×1080 — **Approved 2026-05-08**; /design-system N-1~N-3 applied (FRESH 待探索意图, P3 分工, OQ-4 30s 标准) |
 | 17 | ParentVocabMap | VS | Polish/Output | M | Gold star map; VoiceRecorder playback; long-press-5s entry |
-| 18 | Chapter2Teaser | VS | Polish/Output | S | Static silhouette + 3s fade-out; no data deps |
+| 18 | Chapter2Teaser | VS | Polish/Output | S | Static silhouette + 3s fade-out; no data deps — **Approved 2026-05-08**; CD-GDD-ALIGN N-1~N-3 applied (Chapter 2 theme locked 动物, giraffe contrast check, dusk-color toddler test) |
 
 *Effort: S = 1 design session, M = 2–3 sessions*
 
