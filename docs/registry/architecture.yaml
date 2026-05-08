@@ -67,6 +67,20 @@ state_ownership:
     added: 2026-05-06
     revised: ""
 
+  - state: save_file_data
+    status: active
+    owner_system: SaveSystem
+    adr: docs/architecture/adr-0004-save-system-atomic-write.md
+    interface: "SaveSystem.load_profile(index) -> Dictionary; SaveSystem.flush_profile(index, data) -> bool; All persistence goes through these two methods. No other system reads/writes user:// save files directly."
+    write_access: SaveSystem-only
+    referenced_by:
+      - docs/architecture/adr-0004-save-system-atomic-write.md
+      - docs/architecture/architecture.md
+      - design/gdd/save-system.md
+      - design/gdd/profile-manager.md
+    added: 2026-05-08
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -119,6 +133,25 @@ interfaces:
       - docs/architecture/adr-0002-tts-provider.md
       - design/gdd/tts-bridge.md
     added: 2026-05-06
+    revised: ""
+
+  - contract: savesystem_flush_load
+    status: active
+    pattern: direct_call
+    producer: SaveSystem
+    consumers:
+      - ProfileManager
+      - VocabStore (via ProfileManager.flush())
+      - VoiceRecorder (via ProfileManager.flush())
+      - InterruptHandler (via ProfileManager.flush())
+    adr: docs/architecture/adr-0004-save-system-atomic-write.md
+    description: "SaveSystem.load_profile(index) -> Dictionary; SaveSystem.flush_profile(index, data) -> bool. Only ProfileManager calls SaveSystem directly. VocabStore, VoiceRecorder, and InterruptHandler route through ProfileManager.flush(). SaveSystem never receives direct calls from Feature-layer systems."
+    referenced_by:
+      - docs/architecture/adr-0004-save-system-atomic-write.md
+      - docs/architecture/architecture.md
+      - design/gdd/save-system.md
+      - design/gdd/profile-manager.md
+    added: 2026-05-08
     revised: ""
 
 # Example:
@@ -217,6 +250,19 @@ api_decisions:
     added: 2026-05-06
     revised: ""
 
+  - purpose: atomic_file_write
+    status: active
+    api: "FileAccess.open(.tmp, WRITE) → store_string(json) → close; DirAccess.open(user://) → rename(.tmp → .json); check store_string() bool return; check rename() != OK"
+    not: "Direct write to .json (non-atomic on Android); ResourceSaver (non-atomic, no schema versioning); append-only journal (over-engineered for <1KB files)"
+    adr: docs/architecture/adr-0004-save-system-atomic-write.md
+    reason: "POSIX rename() on ext4/F2FS is atomic. .tmp + rename guarantees no partial writes on Android OS kill. Simple mental model; <2ms flush time for <1KB files."
+    referenced_by:
+      - docs/architecture/adr-0004-save-system-atomic-write.md
+      - docs/architecture/architecture.md
+      - design/gdd/save-system.md
+    added: 2026-05-08
+    revised: ""
+
 # Example:
 #
 # api_decisions:
@@ -269,6 +315,13 @@ forbidden_patterns:
     why: "load_from_buffer() was inferred from Godot 3.x patterns or incorrect documentation. Godot 4.x uses .data property assignment. Any code calling load_from_buffer() will crash at runtime with 'invalid method'."
     adr: docs/architecture/adr-0002-tts-provider.md
     added: 2026-05-06
+
+  - pattern: savesystem_direct_file_access
+    status: active
+    description: "No system except SaveSystem may call FileAccess.open() or DirAccess methods on user:// save files. All persistence must go through SaveSystem.load_profile() and SaveSystem.flush_profile(). ProfileManager is the only system that calls SaveSystem directly; VocabStore, VoiceRecorder, and InterruptHandler route through ProfileManager.flush()."
+    why: "SaveSystem owns the atomic write protocol (.tmp + rename). Direct file access bypasses atomicity guarantees, schema version stamping, and .tmp recovery. Violations create silent data corruption on Android OS kill."
+    adr: docs/architecture/adr-0004-save-system-atomic-write.md
+    added: 2026-05-08
 
 # Example:
 #
