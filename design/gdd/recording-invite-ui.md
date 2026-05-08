@@ -1,6 +1,6 @@
 # RecordingInviteUI
 
-> **Status**: Approved — CD-GDD-ALIGN APPROVED WITH NOTES 2026-05-08; CD-1 applied (TTS P1 constraint); D-1 applied (SAVING T-Rex pose); D-2 applied (signal semantics); D-3 applied (game-concept.md 80dp→96dp)
+> **Status**: Approved — CD-GDD-ALIGN APPROVED WITH NOTES 2026-05-08; CD-1 applied (TTS P1 constraint); D-1 applied (SAVING T-Rex pose); D-2 applied (signal semantics); D-3 applied (game-concept.md 80dp→96dp); **S5-B1 applied 2026-05-08** (recording_interrupted subscription, Core Rule 13, E10 fix, AC-19/AC-20); **B-3 applied 2026-05-08** (AnimationHandler interface, AC-17/AC-18)
 > **Author**: user + agents
 > **Last Updated**: 2026-05-08
 > **Implements Pillar**: P3（声音是成长日记）、P2（失败是另一条好玩的路）
@@ -30,6 +30,7 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
    - 连接 `VoiceRecorder.recording_saved` → `_on_recording_saved()`
    - 连接 `VoiceRecorder.recording_failed` → `_on_recording_failed()`
    - 连接 `VoiceRecorder.recording_unavailable` → `_on_recording_unavailable()`
+   - 连接 `VoiceRecorder.recording_interrupted` → `_on_recording_interrupted()`（**S5-B1 修复**：`interrupt_and_commit()` 无条件 emit；收到后从 RECORDING 转入 DISMISSING，防止界面卡死）
    - `_exit_tree()` 时全部断开（Callable 绑定即可防止悬挂引用）
 
 3. **出现守卫**：`_on_invite_triggered()` 首先调用 `VoiceRecorder.is_recording_available()`。若返回 `false` → 直接 `return`，UI 不出现，孩子不感知。
@@ -54,6 +55,8 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 
 12. **完成后 emit** `recording_invite_dismissed(skipped: bool)` 信号，供 GameScene / 父节点监听（可选；不影响 StoryManager 主流程）。**信号语义**：`skipped: false` 表示孩子曾尝试录音（不论是否成功保存）；`skipped: true` 表示孩子主动跳过或超时。下游 P4 系统（如 ParentVocabMap）判断录音是否实际存在时，须查询 VoiceRecorder 而非仅依赖本信号的 `skipped` 值。
 
+13. **recording_interrupted**（S5-B1 修复，任何时刻收到）→ 若处于 RECORDING → 立即转 DISMISSING（不调用 `stop_recording()`，VoiceRecorder 已在 `interrupt_and_commit()` 中处理完录音状态）；若处于其他状态（APPEARING / IDLE / SAVING / DISMISSING）→ 忽略（无卡死风险，无需处理）。此信号由 `VoiceRecorder.interrupt_and_commit()` 无条件 emit，解决 InterruptHandler 触发时 RIUI 在 RECORDING 状态卡死的阻断问题。
+
 ---
 
 ### States and Transitions
@@ -63,7 +66,7 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 | **INACTIVE** | 不可见；等待信号 | 初始 / DISMISSING 动画完成 | `recording_invite_triggered` + `is_recording_available()` |
 | **APPEARING** | 淡入动画播放（≤0.3s） | INACTIVE | 动画完成 |
 | **IDLE** | 圆钮脉冲；超时倒计时运行 | APPEARING | 手指按下（→ RECORDING）/ 跳过（→ DISMISSING）/ 超时（→ DISMISSING）/ `recording_unavailable`（→ DISMISSING） |
-| **RECORDING** | 录音进行；环形指示器动画 | IDLE（手指按下） | 手指抬起（→ SAVING）/ `recording_unavailable`（→ DISMISSING） |
+| **RECORDING** | 录音进行；环形指示器动画 | IDLE（手指按下） | 手指抬起（→ SAVING）/ `recording_unavailable`（→ DISMISSING）/ `recording_interrupted`（→ DISMISSING，S5-B1 修复） |
 | **SAVING** | 等待 VoiceRecorder 写入完成 | RECORDING（手指抬起） | `recording_saved`（→ DISMISSING）/ `recording_failed`（→ DISMISSING）/ `recording_unavailable`（→ DISMISSING） |
 | **DISMISSING** | 淡出动画播放（≤0.3s） | 多个来源（见上） | 动画完成 → INACTIVE；emit `recording_invite_dismissed` |
 
@@ -74,9 +77,10 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 | 系统 | 方向 | 接口 | 说明 |
 |------|------|------|------|
 | **TagDispatcher**（AutoLoad） | 订阅 | `recording_invite_triggered(word_id, word_text)` | 触发 UI 出现；不向 TagDispatcher 回调 |
-| **VoiceRecorder**（AutoLoad） | 调用 + 订阅 | 调用：`is_recording_available()`、`start_recording(word_id)`、`stop_recording()`；订阅：`recording_saved`、`recording_failed`、`recording_unavailable` | 全部录音逻辑委托给 VoiceRecorder；RecordingInviteUI 只管 UI 状态和信号路由 |
+| **VoiceRecorder**（AutoLoad） | 调用 + 订阅 | 调用：`is_recording_available()`、`start_recording(word_id)`、`stop_recording()`；订阅：`recording_saved`、`recording_failed`、`recording_unavailable`、`recording_interrupted`（S5-B1 修复） | 全部录音逻辑委托给 VoiceRecorder；RecordingInviteUI 只管 UI 状态和信号路由 |
 | **StoryManager** | 无直接依赖 | — | 录音邀请以「发射即忘」方式运行；StoryManager 独立推进叙事，不等待录音结果 |
 | **GameScene**（父节点） | 上行信号 | `recording_invite_dismissed(skipped: bool)` | 可选监听；用于需要等待录音流程的场景编排（非必需） |
+| **AnimationHandler**（场景实例） | 调用 | `play_recording_invite()`（APPEARING 时调用）；`stop_recording_listen()`（SAVING 阶段收到 `recording_saved`/`recording_failed`/`recording_interrupted` 后调用） | **B-3 修复**：明确 `stop_recording_listen()` 时机——必须在 SAVING 阶段信号到达后调用，不得在 RECORDING 阶段中途调用（保证 T-Rex 举爪姿势在整个录音+保存期间持续可见） |
 
 ## Formulas
 
@@ -104,7 +108,7 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 | E7 | `recording_unavailable` 在 RECORDING 状态中收到 | 立即转 DISMISSING；不调用 `stop_recording()`（VoiceRecorder 已处于不可用状态，调用无效）（Core Rule 11） |
 | E8 | 孩子按住圆钮但在 IDLE → RECORDING 转换期间松手（极快点击） | `pressed == false` 在 RECORDING 之前到达 `_input()`；此时尚未进入 RECORDING，`stop_recording()` 不调用；IDLE 超时或跳过正常退出 |
 | E9 | 场景切换时 RecordingInviteUI 处于 RECORDING 状态 | `_exit_tree()` 断开所有信号；VoiceRecorder 会收到 recording_unavailable（InterruptHandler 已处理），自行清理；不额外调用 stop_recording() |
-| E10 | InterruptHandler 触发（app 进入后台）时 RecordingInviteUI 处于 IDLE/RECORDING | `recording_unavailable` 信号已由 VoiceRecorder 在 InterruptHandler 流程中 emit；Core Rule 11 处理 |
+| E10 | InterruptHandler 触发（app 进入后台）时 RecordingInviteUI 处于 RECORDING | **S5-B1 修复**：`VoiceRecorder.interrupt_and_commit()` 无条件 emit `recording_interrupted()` 信号；Core Rule 13 处理：RIUI 从 RECORDING 立即转 DISMISSING。若处于 IDLE → `recording_interrupted` 仍会到达但 RIUI 忽略（Core Rule 13：其他状态忽略） |
 
 ## Dependencies
 
@@ -113,7 +117,8 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 | 系统 | 依赖类型 | 具体接口 |
 |------|---------|---------|
 | **TagDispatcher**（AutoLoad） | 信号订阅 | `recording_invite_triggered(word_id: String, word_text: String)` |
-| **VoiceRecorder**（AutoLoad） | 方法调用 + 信号订阅 | `is_recording_available()` → bool；`start_recording(word_id: String)`；`stop_recording()`；订阅：`recording_saved`、`recording_failed`、`recording_unavailable` |
+| **VoiceRecorder**（AutoLoad） | 方法调用 + 信号订阅 | `is_recording_available()` → bool；`start_recording(word_id: String)`；`stop_recording()`；订阅：`recording_saved`、`recording_failed`、`recording_unavailable`、`recording_interrupted`（S5-B1 修复） |
+| **AnimationHandler**（场景实例） | 方法调用 | `play_recording_invite()`（APPEARING 阶段调用）；`stop_recording_listen()`（SAVING 阶段信号到达后调用——B-3 修复） |
 
 ### 下游依赖（依赖本系统的系统）
 
@@ -149,7 +154,7 @@ RecordingInviteUI 是一个模态叠加界面，当 Ink 叙事触发 `record:inv
 
 **T-Rex 姿态**
 - IDLE：手臂抬起、等待姿势（「T-Rex 在等你」框架对应动画；由 AnimationHandler 驱动，具体状态名待 AnimationHandler GDD 确认）
-- **SAVING**：保持 IDLE 举爪等待姿势不变（不提前回落）；直到 `recording_saved` 或 `recording_failed` 确认后再切换（保证孩子的录音瞬间在 app 承认前不中断）
+- **SAVING**：保持 IDLE 举爪等待姿势不变（不提前回落）；直到 `recording_saved`、`recording_failed` 或 `recording_interrupted`（S5-B1 修复）确认后再调用 `stop_recording_listen()` 切换（保证孩子的录音瞬间在 app 承认前不中断）
 - SAVING → DISMISSING：「听到了」短暂反馈动画（≤ `TREX_ACK_DURATION_SEC`，默认 1.2 秒）
 - skip/timeout DISMISSING：T-Rex 温柔放下手臂，回到 IDLE 动画；不播放 CONFUSED（P2 Anti-Pillar：失败/放弃无惩罚表情）
 
@@ -269,6 +274,20 @@ RecordingInviteUI (CanvasLayer / Control)
 | # | 条件 | 类型 |
 |---|------|------|
 | AC-16 | `recording_invite_dismissed(skipped: bool)` 仅在 DISMISSING → INACTIVE 时 emit 一次（不重复 emit） | BLOCKING |
+
+**SAVING 阶段姿势与时序（B-3 + W-5 修复）**
+
+| # | 条件 | 类型 |
+|---|------|------|
+| AC-17 | SAVING 阶段，AnimationHandler 处于 RECORDING_LISTEN 状态时，T-Rex 举爪姿势保持可见（不提前回落至 IDLE）；直到 `recording_saved` 或 `recording_interrupted` 收到后才调用 `stop_recording_listen()` | BLOCKING |
+| AC-18 | `stop_recording_listen()` 在 `recording_saved` 或 `recording_failed` 之后调用（不在 SAVING 阶段中途调用）；调用后 AnimationHandler 从 RECORDING_LISTEN 转为 IDLE | BLOCKING |
+
+**recording_interrupted 信号处理（S5-B1 修复）**
+
+| # | 条件 | 类型 |
+|---|------|------|
+| AC-19 | RecordingInviteUI 处于 RECORDING 状态时收到 `recording_interrupted` → 立即进入 DISMISSING；不调用 `stop_recording()`；无错误提示 | BLOCKING |
+| AC-20 | RecordingInviteUI 处于 IDLE/APPEARING/SAVING 状态时收到 `recording_interrupted` → 忽略，状态不变 | BLOCKING |
 
 ## Open Questions
 
