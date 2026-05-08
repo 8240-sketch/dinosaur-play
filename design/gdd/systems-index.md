@@ -35,7 +35,7 @@
 | 12 | HatchScene | UI | Vertical Slice | Approved | design/gdd/hatch-scene.md | ProfileManager, AnimationHandler |
 | 13 | NameInputScreen (inferred) | UI | Vertical Slice | Approved | design/gdd/name-input-screen.md | ProfileManager || 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Approved | design/gdd/recording-invite-ui.md | VoiceRecorder *(signal from TagDispatcher)* |
 | 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Approved | design/gdd/vocab-priming-loader.md | VocabStore |
-| 16 | PostcardGenerator | Meta | Vertical Slice | Not Started | — | VocabStore, ProfileManager |
+| 16 | PostcardGenerator | Meta | Vertical Slice | Approved | design/gdd/postcard-generator.md | VocabStore, ProfileManager |
 | 17 | ParentVocabMap | Meta | Vertical Slice | Not Started | — | VocabStore, VoiceRecorder |
 | 18 | Chapter2Teaser | Meta | Vertical Slice | Not Started | — | (none) |
 
@@ -124,7 +124,7 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 13 | NameInputScreen | VS | Presentation | S | 20-char max (NAME_MAX_LENGTH constant); skippable; ProfileManager.create_profile |
 | 14 | RecordingInviteUI | VS | Presentation | S | signal subscriber (not TagDispatcher caller); orange circle button |
 | 15 | VocabPrimingLoader | VS | Presentation | S | tween await; queue_free pattern |
-| 16 | PostcardGenerator | VS | Polish/Output | M | **Scope: save to Pictures gallery** (not Android Share Intent); 1080×1080 |
+| 16 | PostcardGenerator | VS | Polish/Output | M | **Scope: save to Pictures gallery** (not Android Share Intent); 1080×1080 — **Approved 2026-05-08**; /design-system N-1~N-3 applied (FRESH 待探索意图, P3 分工, OQ-4 30s 标准) |
 | 17 | ParentVocabMap | VS | Polish/Output | M | Gold star map; VoiceRecorder playback; long-press-5s entry |
 | 18 | Chapter2Teaser | VS | Polish/Output | S | Static silhouette + 3s fade-out; no data deps |
 
@@ -175,11 +175,11 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 15 |
-| Design docs reviewed | 15 |
-| Design docs approved | 15 |
+| Design docs started | 16 |
+| Design docs reviewed | 16 |
+| Design docs approved | 16 |
 | MVP systems designed | 9 / 9 |
-| Vertical Slice systems designed | 6 / 9 |
+| Vertical Slice systems designed | 7 / 9 |
 
 ---
 
