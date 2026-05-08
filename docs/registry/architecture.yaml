@@ -81,6 +81,20 @@ state_ownership:
     added: 2026-05-08
     revised: ""
 
+  - state: active_profile_data
+    status: active
+    owner_system: ProfileManager
+    adr: docs/architecture/adr-0005-profile-switch-protocol.md
+    interface: "ProfileManager._active_data (single Dictionary authority); get_section(key) returns direct reference; switch_to_profile() is the sole mutation path. All other systems read via get_section() or get_profile_header()."
+    write_access: ProfileManager-only (via switch_to_profile 7-step sequence)
+    referenced_by:
+      - docs/architecture/adr-0005-profile-switch-protocol.md
+      - docs/architecture/architecture.md
+      - design/gdd/profile-manager.md
+      - design/gdd/vocab-store.md
+    added: 2026-05-08
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -321,6 +335,13 @@ forbidden_patterns:
     description: "No system except SaveSystem may call FileAccess.open() or DirAccess methods on user:// save files. All persistence must go through SaveSystem.load_profile() and SaveSystem.flush_profile(). ProfileManager is the only system that calls SaveSystem directly; VocabStore, VoiceRecorder, and InterruptHandler route through ProfileManager.flush()."
     why: "SaveSystem owns the atomic write protocol (.tmp + rename). Direct file access bypasses atomicity guarantees, schema version stamping, and .tmp recovery. Violations create silent data corruption on Android OS kill."
     adr: docs/architecture/adr-0004-save-system-atomic-write.md
+    added: 2026-05-08
+
+  - pattern: profile_switch_await_in_handler
+    status: active
+    description: "All profile_switch_requested signal handlers MUST execute synchronously. Never use `await`, `yield`, or `call_deferred()` inside a handler for this signal. Any `await` in a subscriber causes the flush-load-replace window to execute before cleanup completes, persisting stale old-profile data into the new profile's save file."
+    why: "GDScript signals dispatch synchronously. `await` yields control to the SceneTree, allowing ProfileManager's flush-load sequence to proceed before the handler finishes. This creates silent data corruption that cannot be detected by unit tests — only by code review or CI static analysis."
+    adr: docs/architecture/adr-0005-profile-switch-protocol.md
     added: 2026-05-08
 
 # Example:
