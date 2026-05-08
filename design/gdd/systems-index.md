@@ -38,6 +38,7 @@
 | 16 | PostcardGenerator | Meta | Vertical Slice | Approved | design/gdd/postcard-generator.md | VocabStore, ProfileManager |
 | 17 | ParentVocabMap | Meta | Vertical Slice | Approved with Conditions | design/gdd/parent-vocab-map.md | VocabStore, VoiceRecorder, ProfileManager |
 | 18 | Chapter2Teaser | Meta | Vertical Slice | Approved | design/gdd/chapter2-teaser.md | (none) |
+| 19 | AudioManager | Core | MVP | Approved (ADR-0008) | docs/architecture/adr-0008-audio-manager-bgm.md | (Godot AudioStreamPlayer) |
 
 ---
 

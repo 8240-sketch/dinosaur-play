@@ -65,16 +65,19 @@ Adopt **Fixed Sequential Loading with Dependency-Ordered Project Settings** for 
 ④ TtsBridge           — no game deps (configure() deferred to GameRoot)
      _ready(): add HTTPRequest + AudioStreamPlayer children
 
-⑤ StoryManager        — depends on: VocabStore, TtsBridge, TagDispatcher
+⑤ AudioManager        — no game deps (BGM AudioStreamPlayer)
+     _ready(): add BGMPlayer child (<0.1ms)
+
+⑥ StoryManager        — depends on: VocabStore, TtsBridge, TagDispatcher
      _ready(): assert InkRuntime.get_singleton() != null
 
-⑥ TagDispatcher       — depends on: StoryManager, AnimationHandler (scene-local)
+⑦ TagDispatcher       — depends on: StoryManager, AnimationHandler (scene-local)
      _ready(): empty (registration deferred to begin_chapter)
 
-⑦ VoiceRecorder       — depends on: ProfileManager, SaveSystem
+⑧ VoiceRecorder       — depends on: ProfileManager, SaveSystem
      _ready(): OS.request_permission("RECORD_AUDIO")
 
-⑧ InterruptHandler    — depends on: StoryManager, VoiceRecorder
+⑨ InterruptHandler    — depends on: StoryManager, VoiceRecorder
      _ready(): connect to SM.chapter_interrupted + VR.recording_interrupted
 ```
 
@@ -103,18 +106,21 @@ AutoLoad ④ TtsBridge._ready()
     │  ├─ add AudioStreamPlayer child
     │  └─ ready
     ▼
-AutoLoad ⑤ StoryManager._ready()
+AutoLoad ⑤ AudioManager._ready()
+    │  └─ add BGMPlayer child (<0.1ms)
+    ▼
+AutoLoad ⑥ StoryManager._ready()
     │  ├─ assert InkRuntime.get_singleton() != null
     │  └─ ready
     ▼
-AutoLoad ⑥ TagDispatcher._ready()
+AutoLoad ⑦ TagDispatcher._ready()
     │  └─ ready (empty — registration deferred)
     ▼
-AutoLoad ⑦ VoiceRecorder._ready()
+AutoLoad ⑧ VoiceRecorder._ready()
     │  ├─ OS.request_permission("RECORD_AUDIO")
     │  └─ ready
     ▼
-AutoLoad ⑧ InterruptHandler._ready()
+AutoLoad ⑨ InterruptHandler._ready()
     │  ├─ connect StoryManager.chapter_interrupted
     │  ├─ connect VoiceRecorder.recording_interrupted
     │  └─ ready
