@@ -34,7 +34,7 @@
 | 11 | MainMenu | UI | MVP | Approved | design/gdd/main-menu.md | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Approved | design/gdd/hatch-scene.md | ProfileManager, AnimationHandler |
 | 13 | NameInputScreen (inferred) | UI | Vertical Slice | Approved | design/gdd/name-input-screen.md | ProfileManager || 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Approved | design/gdd/recording-invite-ui.md | VoiceRecorder *(signal from TagDispatcher)* |
-| 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Not Started | — | VocabStore |
+| 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Approved | design/gdd/vocab-priming-loader.md | VocabStore |
 | 16 | PostcardGenerator | Meta | Vertical Slice | Not Started | — | VocabStore, ProfileManager |
 | 17 | ParentVocabMap | Meta | Vertical Slice | Not Started | — | VocabStore, VoiceRecorder |
 | 18 | Chapter2Teaser | Meta | Vertical Slice | Not Started | — | (none) |
@@ -175,11 +175,11 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 14 |
-| Design docs reviewed | 14 |
-| Design docs approved | 14 |
+| Design docs started | 15 |
+| Design docs reviewed | 15 |
+| Design docs approved | 15 |
 | MVP systems designed | 9 / 9 |
-| Vertical Slice systems designed | 5 / 9 |
+| Vertical Slice systems designed | 6 / 9 |
 
 ---
 
