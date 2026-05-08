@@ -31,7 +31,7 @@
 | 8 | VoiceRecorder | Core | Vertical Slice | Approved | design/gdd/voice-recorder.md | ProfileManager, SaveSystem |
 | 9 | InterruptHandler (inferred) | Core | Vertical Slice | Approved | design/gdd/interrupt-handler.md | StoryManager, SaveSystem, VocabStore, VoiceRecorder（软依赖） |
 | 10 | ChoiceUI | UI | MVP | Approved | design/gdd/choice-ui.md | StoryManager, TtsBridge |
-| 11 | MainMenu | UI | MVP | Not Started | — | ProfileManager, StoryManager |
+| 11 | MainMenu | UI | MVP | Approved | design/gdd/main-menu.md | ProfileManager, StoryManager |
 | 12 | HatchScene | UI | Vertical Slice | Not Started | — | ProfileManager, AnimationHandler |
 | 13 | NameInputScreen (inferred) | UI | Vertical Slice | Not Started | — | ProfileManager || 14 | RecordingInviteUI (inferred) | UI | Vertical Slice | Not Started | — | VoiceRecorder *(signal from TagDispatcher)* |
 | 15 | VocabPrimingLoader (inferred) | UI | Vertical Slice | Not Started | — | VocabStore |
@@ -112,14 +112,14 @@ Share Intent). VoiceRecorder go/no-go is Day 1 of Week 3, not after 3 days.*
 | 1 | SaveSystem | MVP | Foundation | S | Resolve: ProfileManager switch guard protocol — **Approved 2026-05-06** |
 | 2 | ProfileManager | MVP | Core | M | Resolve: `times_played` owner declaration; pre_switch_checks contract — **Approved 2026-05-06** |
 | 3 | VocabStore | MVP | Core | M | schema v2 multi-profile; gold star threshold — **Approved 2026-05-06** |
-| 4 | AnimationHandler | MVP | Core | S | 16 NPC states; AnimationPlayer state machine — **Approved 2026-05-06** |
+| 4 | AnimationHandler | MVP | Core | S | 14 logical states / 18 clips; NON_INTERRUPTIBLE includes RECOGNIZE — **Approved 2026-05-06**; incremental patch 2026-05-08 (RECOGNIZE+SITTING); /design-review RF-NEW-1~9 applied 2026-05-08 (CD D1/D2) |
 | 5 | TtsBridge | MVP | Core | S | Godot 4.6 tts_speak() + text-highlight fallback — **Approved 2026-05-06** |
 | 6 | StoryManager | MVP | Feature | M | inkgd wrapper; chapter state machine; TtsBridge dependency — **Approved 2026-05-06** |
 | 7 | TagDispatcher | MVP | Feature | M | Resolve: VocabStore write contract; signal-based ChoiceUI/RecordingInviteUI — **Approved 2026-05-06**; /design-review RF-1~RF-6 applied 2026-05-07 (VALID_ANIM_STATES fix, record:invite 3-segment, P2 cross-doc anchor, AC-13b+N1~N4) |
 | 8 | VoiceRecorder ⚠️ | VS | Feature | M | **Day 1 go/no-go**: 5-min smoke test; fallback = remove feature |
 | 9 | InterruptHandler | VS | Feature | S | _notification() back key / phone call / screen-off |
 | 10 | ChoiceUI | MVP | Presentation | S | 96dp buttons; signal subscriber (not TagDispatcher caller) — **Approved 2026-05-07**; SM patch applied (choices_ready chinese_text, vocab_ch1.json nested format); /design-review RF-1~RF-8 applied (P2 fix, B1/B2, N3, layout 96dp) |
-| 11 | MainMenu | MVP | Presentation | S | T-Rex idle; profile indicator; 「出发冒险！」 |
+| 11 | MainMenu | MVP | Presentation | S | T-Rex idle; profile indicator; 「出发冒险！」 — **Approved 2026-05-08**; /design-review RF-1~RF-13 + R1~R8 applied 2026-05-08 (B1~B13: transitions/dead-state/div-zero/begin_session/layout/P2/deferred_confused/missing-ACs/mock-spec) |
 | 12 | HatchScene | VS | Presentation | S | times_played==0 gate; egg crack AnimationPlayer sequence |
 | 13 | NameInputScreen | VS | Presentation | S | 20-char max (NAME_MAX_LENGTH constant); skippable; ProfileManager.create_profile |
 | 14 | RecordingInviteUI | VS | Presentation | S | signal subscriber (not TagDispatcher caller); orange circle button |
@@ -175,10 +175,10 @@ resolved in the specified GDD before that GDD is approved.
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 18 |
-| Design docs started | 9 |
-| Design docs reviewed | 9 |
-| Design docs approved | 9 |
-| MVP systems designed | 7 / 9 |
+| Design docs started | 11 |
+| Design docs reviewed | 11 |
+| Design docs approved | 11 |
+| MVP systems designed | 9 / 9 |
 | Vertical Slice systems designed | 2 / 9 |
 
 ---

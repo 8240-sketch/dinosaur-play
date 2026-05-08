@@ -261,7 +261,7 @@ on_foreground_notification():
 | **VoiceRecorder** | `interrupt_and_commit()` | 中断前主动调用（FOCUS_OUT/PAUSED/WM_GO_BACK_REQUEST/`ui_cancel` 四路径），固化录音路径至 VocabStore；确保 P3 录音路径在 flush 时已就绪。**调用前须以 `is_instance_valid()` 检查可用性**：权限被拒时 VoiceRecorder 合法不可用，静默跳过，不崩溃 |
 | **ProfileManager** | `flush() -> bool` | 写盘：将未持久化进度强制落盘 |
 | **SceneTree** | `get_tree().change_scene_to_file(path: String)` | `user_back_button` 中断后导航至主菜单 |
-| **VocabStore** | （数据前提，非直接调用） | VocabStore 须在中断发生前将录音路径字段更新至 ProfileManager 内存；VoiceRecorder.interrupt_and_commit() 确保此前置已完成 |
+| **VoiceRecorder** | （数据前提，非直接调用） | VoiceRecorder 须在中断发生前将录音路径字段写入 ProfileManager 内存；`interrupt_and_commit()` 确保此前置已完成。VoiceRecorder 是 `recording_paths` 的写权限持有者（VocabStore 不拥有此字段） |
 
 ### 下游依赖（依赖 InterruptHandler）
 
