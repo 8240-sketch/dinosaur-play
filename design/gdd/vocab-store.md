@@ -185,7 +185,7 @@ if first_star_at == null:
 | 信号 | 签名 | 接收方 |
 |------|------|--------|
 | `gold_star_awarded` | `(word_id: String, new_star_count: int)` | ParentVocabMap、HUD 星星动效 |
-| `word_learned` | `(word_id: String)` | ParentVocabMap（标记「已认识」徽章） |
+| `word_learned` | `(word_id: String)` | （当前无直接订阅者；ParentVocabMap 通过 `gold_star_awarded` + `IS_LEARNED_THRESHOLD` 推算 MASTERED 状态，不订阅此信号——见 ParentVocabMap GDD Core Rule 5）|
 
 ## Tuning Knobs
 
