@@ -95,6 +95,20 @@ state_ownership:
     added: 2026-05-08
     revised: ""
 
+  - state: vocab_progress_data
+    status: active
+    owner_system: VocabStore
+    adr: docs/architecture/adr-0006-vocab-store-formula.md
+    interface: "VocabStore.correct_event(word_id) / not_correct_event(word_id) — mutates gold_star_count, is_learned, first_star_at via direct reference from get_section('vocab_progress'). VoiceRecorder owns recording_paths in same Dictionary — no overlap."
+    write_access: VocabStore (gold_star_count, is_learned, first_star_at, seen, correct) + VoiceRecorder (recording_paths)
+    referenced_by:
+      - docs/architecture/adr-0006-vocab-store-formula.md
+      - docs/architecture/architecture.md
+      - design/gdd/vocab-store.md
+      - design/gdd/voice-recorder.md
+    added: 2026-05-08
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -342,6 +356,13 @@ forbidden_patterns:
     description: "All profile_switch_requested signal handlers MUST execute synchronously. Never use `await`, `yield`, or `call_deferred()` inside a handler for this signal. Any `await` in a subscriber causes the flush-load-replace window to execute before cleanup completes, persisting stale old-profile data into the new profile's save file."
     why: "GDScript signals dispatch synchronously. `await` yields control to the SceneTree, allowing ProfileManager's flush-load sequence to proceed before the handler finishes. This creates silent data corruption that cannot be detected by unit tests — only by code review or CI static analysis."
     adr: docs/architecture/adr-0005-profile-switch-protocol.md
+    added: 2026-05-08
+
+  - pattern: vocabsystem_int_division_formula
+    status: active
+    description: "Never compute gold star ratio with bare integer division: `correct / seen >= 0.8` — GDScript truncates int/int to int, so `4/5 = 0`, not `0.8`. Always use `float(correct) / float(seen) >= STAR_RATIO_THRESHOLD` with explicit float cast."
+    why: "GDScript integer division is a well-known pitfall. `4/5` evaluates to `0`, not `0.8`. The float cast is mandatory and non-obvious to developers unfamiliar with GDScript. Caught by code review but not by the compiler."
+    adr: docs/architecture/adr-0006-vocab-store-formula.md
     added: 2026-05-08
 
 # Example:
