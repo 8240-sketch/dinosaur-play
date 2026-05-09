@@ -1,7 +1,7 @@
 # ADR-0004: SaveSystem Atomic Write Protocol and Schema Migration
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08

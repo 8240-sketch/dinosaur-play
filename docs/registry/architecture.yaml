@@ -29,8 +29,8 @@
 #   All forbidden patterns: Grep pattern="^  - pattern:" (forbidden_patterns section)
 #   Superseded entries:     Grep pattern="status: superseded"
 
-version: 1
-last_updated: "2026-05-06"
+version: 2
+last_updated: "2026-05-09"
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -182,11 +182,160 @@ interfaces:
     added: 2026-05-08
     revised: ""
 
-# Example:
-#
-# interfaces:
-#   - contract: damage_delivery
-#     status: active
+  - contract: voice_recorder_recording
+    status: active
+    pattern: direct_call
+    producer: VoiceRecorder
+    consumers:
+      - RecordingInviteUI (start_recording, stop_recording, signals)
+      - InterruptHandler (interrupt_and_commit)
+    adr: docs/architecture/adr-0009-voice-recorder-android.md
+    description: "VoiceRecorder recording side: start_recording(word_id) -> bool, stop_recording() -> bool, interrupt_and_commit() -> void (sync, no await). Signals: recording_started, recording_saved, recording_failed, recording_unavailable, recording_interrupted. InterruptHandler calls interrupt_and_commit() BEFORE request_chapter_interrupt() in all 4 interrupt paths."
+    referenced_by:
+      - docs/architecture/adr-0009-voice-recorder-android.md
+      - design/gdd/voice-recorder.md
+      - design/gdd/recording-invite-ui.md
+      - design/gdd/interrupt-handler.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: voice_recorder_playback
+    status: active
+    pattern: direct_call
+    producer: VoiceRecorder
+    consumers:
+      - ParentVocabMap (get_recording_paths, play_recording, stop_playback, signals)
+    adr: docs/architecture/adr-0009-voice-recorder-android.md
+    description: "VoiceRecorder playback side: get_recording_paths(word_id) -> Array[String], play_recording(path) -> bool, stop_playback() -> void. Signals: playback_started, playback_completed, playback_failed. AudioStreamPlayer uses PROCESS_MODE_ALWAYS for pause-resistant playback."
+    referenced_by:
+      - docs/architecture/adr-0009-voice-recorder-android.md
+      - design/gdd/voice-recorder.md
+      - design/gdd/parent-vocab-map.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: story_manager_narrative_advance
+    status: active
+    pattern: signal
+    producer: StoryManager
+    consumers:
+      - TagDispatcher (tags_dispatched signal)
+      - ChoiceUI (choices_ready signal, submit_choice call)
+      - InterruptHandler (chapter_interrupted signal, request_chapter_interrupt call)
+      - MainMenu (chapter_started, chapter_completed, chapter_load_failed signals)
+      - TtsBridge (speech_completed signal — consumed per-step during advance)
+    adr: docs/architecture/adr-0010-story-manager-narrative-engine.md
+    description: "StoryManager advance model: _advance_step() emits tags_dispatched after continue_story(), then waits for speech_completed | tts_not_required | timeout. After wait, branches to CHOICE_PENDING (choices_ready signal) or COMPLETING (chapter_completed). All handlers must be synchronous (no await). call_deferred() prevents GDScript recursion on consecutive non-vocab lines."
+    referenced_by:
+      - docs/architecture/adr-0010-story-manager-narrative-engine.md
+      - docs/architecture/adr-0001-inkgd-runtime.md
+      - design/gdd/story-manager.md
+      - design/gdd/tag-dispatcher.md
+      - design/gdd/choice-ui.md
+      - design/gdd/interrupt-handler.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: animation_handler_semantic_api
+    status: active
+    pattern: direct_call
+    producer: AnimationHandler
+    consumers:
+      - TagDispatcher (play_happy, play_confused)
+      - StoryManager (play_story_advance)
+      - HatchScene (play_hatch_idle, play_hatch_crack, subscribes hatch_sequence_completed)
+      - MainMenu (play_menu_idle, play_recognize, play_confused, play_sitting, subscribes animation_completed)
+      - RecordingInviteUI (play_recording_invite, stop_recording_listen)
+    adr: docs/architecture/adr-0011-animation-handler-state-machine.md
+    description: "AnimationHandler per-scene semantic API: play_*() methods are void fire-and-forget. NON_INTERRUPTIBLE guard silently rejects transitions during critical animations. stop_recording_listen() is the only forced exit bypassing the guard. animation_completed(state) signal carries the completed AnimState for callers that need timing. hatch_sequence_completed() signal is the sole hatch chain completion notification."
+    referenced_by:
+      - docs/architecture/adr-0011-animation-handler-state-machine.md
+      - design/gdd/animation-handler.md
+      - design/gdd/tag-dispatcher.md
+      - design/gdd/hatch-scene.md
+      - design/gdd/main-menu.md
+      - design/gdd/recording-invite-ui.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: interrupt_handler_platform_interrupt
+    status: active
+    pattern: direct_call
+    producer: InterruptHandler
+    consumers:
+      - StoryManager (request_chapter_interrupt, confirm_navigation_complete, chapter_interrupted signal)
+      - VoiceRecorder (interrupt_and_commit — soft dependency via is_instance_valid)
+      - ProfileManager (flush — called by IH in interrupt paths)
+    adr: docs/architecture/adr-0012-interrupt-handler-platform.md
+    description: "InterruptHandler 4-path interrupt sequence: VR.interrupt_and_commit() MUST be called BEFORE StoryManager.request_chapter_interrupt() in all 4 paths (FOCUS_OUT, PAUSED, WM_GO_BACK_REQUEST, ui_cancel). IH owns ProfileManager.flush() — SM and VR never flush directly during interrupts. confirm_navigation_complete() resets SM from STOPPED to IDLE after navigation or FOCUS_IN recovery."
+    referenced_by:
+      - docs/architecture/adr-0012-interrupt-handler-platform.md
+      - docs/architecture/adr-0009-voice-recorder-android.md
+      - docs/architecture/adr-0010-story-manager-narrative-engine.md
+      - design/gdd/interrupt-handler.md
+      - design/gdd/story-manager.md
+      - design/gdd/voice-recorder.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: main_menu_launch_sequence
+    status: active
+    pattern: direct_call
+    producer: MainMenu
+    consumers:
+      - StoryManager (begin_chapter, state query)
+      - ProfileManager (begin_session, switch_to_profile, flush, profile_switched signal)
+      - VocabStore (get_gold_star_count)
+      - AnimationHandler (play_recognize, play_confused, play_sitting, animation_completed signal)
+      - AudioManager (play_bgm)
+      - ParentVocabMap (long-press navigation)
+    adr: docs/architecture/adr-0014-main-menu-launch-sequence.md
+    description: "MainMenu 7-step launch sequence: disable button → check SM state → begin_session (once) → connect chapter_load_failed → init flag → begin_chapter → check flag → navigate. Profile switch: no optimistic UI, wait for profile_switched signal. Parent entry: 5s long-press with bubble. LOAD_ERROR: _fail_count max 3 retries; RECOGNIZE + LOAD_ERROR concurrent handling via _deferred_confused."
+    referenced_by:
+      - docs/architecture/adr-0014-main-menu-launch-sequence.md
+      - docs/architecture/adr-0010-story-manager-narrative-engine.md
+      - docs/architecture/adr-0011-animation-handler-state-machine.md
+      - design/gdd/main-menu.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: recording_invite_ui_hold_to_record
+    status: active
+    pattern: direct_call
+    producer: RecordingInviteUI
+    consumers:
+      - VoiceRecorder (start_recording, stop_recording, is_recording_available, signals)
+      - AnimationHandler (play_recording_invite, stop_recording_listen)
+      - TagDispatcher (recording_invite_triggered signal — consumed)
+      - GameScene (recording_invite_dismissed signal — emitted)
+    adr: docs/architecture/adr-0015-recording-invite-ui-interaction.md
+    description: "RecordingInviteUI hold-to-record via _input() (not gui_input()). finger-down in button → start_recording(); finger-up anywhere → stop_recording(). stop_recording_listen() called in SAVING phase (after saved/failed/interrupted), NOT during RECORDING — ensures T-Rex pose continuity. recording_interrupted (S5-B1): RECORDING → immediate DISMISSING without stop_recording call."
+    referenced_by:
+      - docs/architecture/adr-0015-recording-invite-ui-interaction.md
+      - docs/architecture/adr-0009-voice-recorder-android.md
+      - docs/architecture/adr-0011-animation-handler-state-machine.md
+      - design/gdd/recording-invite-ui.md
+      - design/gdd/voice-recorder.md
+      - design/gdd/animation-handler.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: hatch_scene_ceremony_sequence
+    status: direct_call
+    pattern: direct_call
+    producer: HatchScene
+    consumers:
+      - AnimationHandler (play_hatch_idle, play_hatch_crack, subscribes hatch_sequence_completed)
+      - NameInputScreen (navigation target via change_scene_to_file)
+    adr: docs/architecture/adr-0016-hatch-scene-ceremony.md
+    description: "HatchScene 3-state ceremony: WAITING_FOR_TAP (tremble + glow + escalation) → HATCHING (play_hatch_crack, NON_INTERRUPTIBLE chain: crack → emerge → celebrate → signal) → COMPLETED (celebrate hold + skip lock + navigate). Zero data writes — no ProfileManager or SaveSystem calls. Full-screen touch target. Watchdog timer (HATCH_SEQUENCE_WATCHDOG_MS) for fault tolerance."
+    referenced_by:
+      - docs/architecture/adr-0016-hatch-scene-ceremony.md
+      - docs/architecture/adr-0011-animation-handler-state-machine.md
+      - design/gdd/hatch-scene.md
+      - design/gdd/animation-handler.md
+    added: 2026-05-09
+    revised: ""
 #     pattern: signal          # how the producer notifies consumers
 #     producer: combat-system
 #     consumers:
@@ -291,7 +440,39 @@ api_decisions:
     added: 2026-05-08
     revised: ""
 
-# Example:
+  - purpose: voice_recording_capture
+    status: active
+    api: "AudioStreamMicrophone + AudioEffectCapture on editor-created 'Microphone' bus; get_buffer() → PackedVector2Array; extract .x → int16 → PackedByteArray; single FileAccess.store_buffer() write"
+    not: "store_16() per sample (132k GDScript calls = 1.8–5.3s main thread freeze); AudioStreamGenerator (wrong tool); JNI recording (violates GDScript-only constraint)"
+    adr: docs/architecture/adr-0009-voice-recorder-android.md
+    reason: "AudioEffectCapture is Godot's purpose-built API for capturing bus audio. Single store_buffer() write meets <100ms interrupt_and_commit() budget. Go/no-go gate validates on Week 3 Day 1."
+    referenced_by:
+      - docs/architecture/adr-0009-voice-recorder-android.md
+      - design/gdd/voice-recorder.md
+    added: 2026-05-09
+    revised: ""
+
+  - contract: tag_dispatcher_tag_routing
+    status: active
+    pattern: direct_call
+    producer: TagDispatcher
+    consumers:
+      - TtsBridge (speak — called on 2-segment vocab: tags)
+      - VocabStore (record_event — called on all vocab: tags)
+      - AnimationHandler (play_* — called on anim: tags, dynamic registration)
+      - RecordingInviteUI (recording_invite_triggered signal — on record:invite tags)
+      - StoryManager (tts_not_required signal — when no 2-segment vocab in batch)
+    adr: docs/architecture/adr-0013-tag-dispatcher-protocol.md
+    description: "TagDispatcher parses Ink tags and routes to downstream systems. 2-segment vocab: → TtsBridge.speak + VocabStore.record_event(PRESENTED). 3-segment vocab:correct/not_correct → VocabStore.record_event. anim: → AnimationHandler.play_* (is_instance_valid guard). record:invite: → recording_invite_triggered signal. Unknown tags: push_warning + skip. P2 Anti-Pillar: anim:happy and anim:confused execute unconditionally."
+    referenced_by:
+      - docs/architecture/adr-0013-tag-dispatcher-protocol.md
+      - docs/architecture/adr-0010-story-manager-narrative-engine.md
+      - docs/architecture/adr-0011-animation-handler-state-machine.md
+      - design/gdd/tag-dispatcher.md
+      - design/gdd/story-manager.md
+      - design/gdd/recording-invite-ui.md
+    added: 2026-05-09
+    revised: ""
 #
 # api_decisions:
 #   - purpose: physics_raycast
@@ -364,6 +545,41 @@ forbidden_patterns:
     why: "GDScript integer division is a well-known pitfall. `4/5` evaluates to `0`, not `0.8`. The float cast is mandatory and non-obvious to developers unfamiliar with GDScript. Caught by code review but not by the compiler."
     adr: docs/architecture/adr-0006-vocab-store-formula.md
     added: 2026-05-08
+
+  - pattern: voicerecorder_store_16_per_sample
+    status: active
+    description: "Never write WAV audio data by calling FileAccess.store_16() per sample in a loop. 132,300 GDScript function calls on低端 Android = 1.8–5.3 seconds main thread freeze, incompatible with interrupt_and_commit() <100ms budget. Accumulate PCM in a PackedByteArray during recording, then write the complete WAV (header + PCM) in a single FileAccess.store_buffer() call."
+    why: "GDScript function call overhead is ~15–40μs per call. At 44100 Hz × 3 seconds = 132,300 samples, store_16() in a loop produces unacceptable main thread blocking. Single store_buffer() writes the entire WAV in <1ms. Verified from performance analysis in voice-recorder.md Core Rule 8."
+    adr: docs/architecture/adr-0009-voice-recorder-android.md
+    added: 2026-05-09
+
+  - pattern: storymanager_await_in_handlers
+    status: active
+    description: "Never use await in StoryManager's profile_switch_requested handler or in request_chapter_interrupt(). Both must execute synchronously within a single frame. Any await in these handlers breaks the flush-load-replace window (profile switch) or the state-before-emit ordering (interrupt protocol)."
+    why: "profile_switch_requested: await yields to SceneTree before flush completes, allowing new profile data to overwrite old data mid-cleanup. request_chapter_interrupt: await allows re-entrant interrupt logic if IH fires again before state transitions to STOPPED. Both create silent data corruption detectable only by code review, not unit tests."
+    adr: docs/architecture/adr-0010-story-manager-narrative-engine.md
+    added: 2026-05-09
+
+  - pattern: animationhandler_direct_animationplayer_call
+    status: active
+    description: "Never call AnimationPlayer.play() directly from TagDispatcher, StoryManager, HatchScene, MainMenu, or RecordingInviteUI. All animation state changes must go through AnimationHandler's semantic methods (play_happy, play_confused, etc.). Direct calls bypass the NON_INTERRUPTIBLE guard, chain routing logic, and state machine enforcement."
+    why: "AnimationHandler encapsulates 14 states, NON_INTERRUPTIBLE guard, chain routing (hatch), and random variant selection. Direct AnimationPlayer calls would scatter this logic across 5+ callers, making it impossible to enforce guard rules or change animation strategy without modifying all callers."
+    adr: docs/architecture/adr-0011-animation-handler-state-machine.md
+    added: 2026-05-09
+
+  - pattern: interrupt_handler_vr_after_sm
+    status: active
+    description: "Never call StoryManager.request_chapter_interrupt() BEFORE VoiceRecorder.interrupt_and_commit() in any interrupt path. The P3 data contract requires recording paths to be committed to VocabStore (via VR.interrupt_and_commit()) before ProfileManager.flush() persists them. Calling SM interrupt first would flush before recording paths are written, losing录音数据."
+    why: "VoiceRecorder.interrupt_and_commit() synchronously writes WAV and appends recording_paths to VocabStore. ProfileManager.flush() then persists the updated VocabStore data. If SM interrupt triggers flush before VR commit, the flush writes stale VocabStore data without the new recording paths. The ordering VR → SM → flush is the only safe sequence."
+    adr: docs/architecture/adr-0012-interrupt-handler-platform.md
+    added: 2026-05-09
+
+  - pattern: tagdispatcher_signal_routing_to_vocabstore
+    status: active
+    description: "Never route VocabStore.record_event() calls through signals. TagDispatcher and VocabStore are both AutoLoad singletons — use direct method calls. Signal routing adds indirection and makes the call chain harder to trace in debugging. The GDD explicitly specifies direct call (Core Rule 7)."
+    why: "TagDispatcher's routing is trivial (string split → method call). Signal routing would add 5+ signal types for a simple dispatch layer. Direct calls are clearer, faster, and match the GDD specification."
+    adr: docs/architecture/adr-0013-tag-dispatcher-protocol.md
+    added: 2026-05-09
 
 # Example:
 #

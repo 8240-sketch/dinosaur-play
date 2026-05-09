@@ -1,7 +1,7 @@
 # ADR-0008: AudioManager BGM Management Strategy
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08
@@ -152,7 +152,7 @@ func _ready() -> void:
 - **Crossfade support**: Can crossfade between BGM tracks for future chapter themes
 
 ### Negative
-- **New AutoLoad (9th)**: Increases boot chain from 8 to 9. AudioManager loads AFTER TtsBridge (④) but BEFORE StoryManager (⑤) — no dependency on game systems, but adds to LP-CONCERN-1 AutoLoad count.
+- **New AutoLoad (9th)**: AudioManager loads AFTER TtsBridge (④) but BEFORE StoryManager (⑥) — no dependency on game systems. Total AutoLoad count is 9.
 - **Audio Bus setup**: Requires manual Audio Bus layout configuration in Godot Editor (not code-driven)
 - **BGM asset management**: BGM files must be preloaded or loaded on first play; loading on first play may cause a brief silence
 
@@ -190,7 +190,7 @@ This ADR creates a new system (AudioManager) not previously in systems-index.md.
 - Update Recommended Design Order (after TtsBridge, before StoryManager)
 
 **Project Settings update required:**
-- Add AudioManager to AutoLoad list at position ④ (after TtsBridge, before StoryManager)
+- Add AudioManager to AutoLoad list at position ⑤ (after TtsBridge, before StoryManager)
 - Create "BGM" Audio Bus in Godot Editor
 
 ## Validation Criteria

@@ -1,7 +1,7 @@
 # ADR-0006: VocabStore Gold Star Formula and Cross-System Write Contract
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08
@@ -137,6 +137,10 @@ enum EventType { PRESENTED, SELECTED_CORRECT, NOT_CORRECT }
 
 signal gold_star_awarded(word_id: String, new_star_count: int)
 signal word_learned(word_id: String)
+
+func record_event(word_id: String, event_type: EventType) -> void:
+    # Facade: routes to correct_event() / not_correct_event() / _on_presented()
+    # Called by TagDispatcher (both AutoLoad, direct call)
 
 func correct_event(word_id: String) -> void:
     # Increments session correct; checks gold star formula

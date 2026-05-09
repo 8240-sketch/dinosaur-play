@@ -1,7 +1,7 @@
 # ADR-0002: TTS Provider Interface and Selection Strategy
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-06

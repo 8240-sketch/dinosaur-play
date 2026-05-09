@@ -24,33 +24,1380 @@
 #
 # STATUS VALUES: active | deprecated | superseded-by: TR-[system]-NNN
 
-version: 1
-last_updated: ""
+version: 2
+last_updated: "2026-05-09c"
 
-requirements: []
+requirements:
 
-# --- EXAMPLE ENTRIES (remove when first real entries are added) ---
-#
-# - id: TR-combat-001
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Player takes damage from enemies based on attack power minus defence"
-#   created: 2026-03-10
-#   revised: ""
-#   status: active
-#
-# - id: TR-combat-002
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Combo window timing is 0.4 seconds between hits"
-#   created: 2026-03-10
-#   revised: "2026-04-01"
-#   status: active
-#
-# - id: TR-combat-003
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Old damage formula using raw stats"
-#   created: 2026-03-10
-#   revised: ""
-#   status: superseded-by: TR-combat-001
+  # ═══ SaveSystem (Foundation) — 9 TRs ═══
+
+  - id: TR-save-system-001
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "Single I/O entry point; no system directly accesses user:// JSON files"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-002
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "File naming: user://save_profile_{index}.json and user://save_profile_{index}.tmp"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-003
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "Atomic write sequence: deep copy data -> write .tmp -> rename to .json"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-004
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "DirAccess.rename() return value must be checked with != OK (Error enum, OK=0 is falsy)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-005
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "_migrate_to_v2() is additive-only (never delete existing fields), idempotent"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-006
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: ".tmp recovery on _ready(): scan for orphaned .tmp, rename if .json missing, delete if .json exists"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-007
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "Store_* methods return bool since Godot 4.4 breaking change"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-008
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "Schema v2 structure: schema_version, last_saved_timestamp, profile.*, vocab_progress.*, story_progress.*"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-save-system-009
+    system: save-system
+    gdd: design/gdd/save-system.md
+    requirement: "MAX_SAVE_PROFILES = 3 (MVP), 5 (Vertical Slice); CURRENT_SCHEMA_VERSION = 2"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ ProfileManager (Foundation) — 15 TRs ═══
+
+  - id: TR-profile-manager-001
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "Single in-memory authority (_active_data); no system may cache a copy of full profile Dictionary"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-002
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "get_active_data() returns reference (not duplicate) to _active_data"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-003
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "Section-level access via get_section(key); business systems only access their own section by convention"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-004
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "Single flush entry point (ProfileManager.flush()); all systems route through this"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-005
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "switch_to_profile() seven-step sequence with synchronous signal processing (no await in handlers)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-006
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "begin_session() called by MainMenu (not GameRoot), once per App visit"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-007
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "is_first_launch() = (times_played == 0 AND name == ''); state guard prevents false positives"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-008
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "Profile section write permission: only ProfileManager writes profile.* fields"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-009
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "Four-state machine: UNINITIALIZED, NO_ACTIVE_PROFILE, ACTIVE, SWITCHING"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-010
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "profile_switch_requested signal must not have await in subscriber handlers"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-011
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "delete_profile() active profile: 5-step sequence (signal -> clear memory -> delete on disk -> emit cleared -> return)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-012
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "create_profile() creates v2 default structure with all 5 vocab keys"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-013
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "profile_exists() delegates to SaveSystem (no local cache)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-014
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "NAME_MAX_LENGTH = 20 (shared with NameInputScreen); name max 20 characters"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-profile-manager-015
+    system: profile-manager
+    gdd: design/gdd/profile-manager.md
+    requirement: "parent_map_hint_dismissed: bool field in profile section"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ VocabStore (Foundation) — 10 TRs ═══
+
+  - id: TR-vocab-store-001
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "Two-layer memory state: _vocab_data (Dictionary reference from ProfileManager) and _session_counters"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-002
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "record_event() with EventType enum: PRESENTED, SELECTED_CORRECT, NOT_CORRECT"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-003
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "Gold star award formula: session_star_awarded AND seen > 0 AND (correct/seen >= STAR_RATIO_THRESHOLD)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-004
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "CRITICAL: GDScript int/int truncation requires float cast: float(correct) / float(seen)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-005
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "is_learned is monotonic (once true, never reverts); gold_star_count accumulates without limit"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-006
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "Recording_paths write permission belongs to VoiceRecorder only; VocabStore never writes recording_paths"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-007
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "profile_switch_requested handler synchronously clears references (no await)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-008
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "begin_chapter_session() resets session_counters; end_chapter_session() flushes and resets"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-009
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "Gold star awarded flush via ProfileManager.flush() immediately after award"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-store-010
+    system: vocab-store
+    gdd: design/gdd/vocab-store.md
+    requirement: "NOT_CORRECT event must never connect to scoring, parent view error counts, or negative visual feedback (Anti-Pillar P2)"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ TtsBridge (Core) — 10 TRs ═══
+
+  - id: TR-tts-bridge-001
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "AutoLoad singleton; TtsProvider pluggable interface"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-002
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "Three-tier fallback chain: Tier 1 (AI TTS) -> Tier 2 (System TTS) -> Tier 3 (highlight signal)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-003
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "AI session health: consecutive failure threshold, CONFIGURATION_ERROR immediate disable"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-004
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "Lazy audio cache (word_id -> AudioStream); cleared on configure()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-005
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "Interrupt strategy: new speak() cancels previous"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-006
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "warm_cache() for preloading; speak() clears warm queue and takes priority"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-007
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "HTTP POST to AI endpoint; timeout TTS_HTTP_TIMEOUT_MS = 5000ms"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-008
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "System TTS watchdog timer for OEM silent completion"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-009
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "MAX_PERCEIVED_LATENCY_MS = 400ms target for first-play latency"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tts-bridge-010
+    system: tts-bridge
+    gdd: design/gdd/tts-bridge.md
+    requirement: "ChoiceUI must NOT subscribe to tts_fallback_to_highlight (P2 protection)"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ StoryManager (Feature) — 12 TRs ═══
+
+  - id: TR-story-manager-001
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "AutoLoad singleton, single active chapter at a time, cross-scene persistence"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-002
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "begin_chapter() four-step ordered sequence"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-003
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "Single-step advance model (_advance_step) with three-way wait"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-004
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "POST_TTS_PAUSE_MS delay after TTS completion before branch judgment"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-005
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "MAX_CHOICES = 2 truncation with push_warning"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-006
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "request_chapter_interrupt() / confirm_navigation_complete() for InterruptHandler integration"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-007
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "profile_switch_requested handler must be synchronous (no await)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-008
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "Ink content authoring constraint: T-Rex must not fluently pronounce target vocab before child selects it"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-009
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "Story progress section schema: completed_chapters, last_played_chapter, last_played_at"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-010
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "call_deferred required for _advance_step to prevent GDScript synchronous recursion stack overflow"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-011
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "Timer node required (not get_tree().create_timer) for timeout"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-story-manager-012
+    system: story-manager
+    gdd: design/gdd/story-manager.md
+    requirement: "GameScene must subscribe to TtsBridge.tts_fallback_to_highlight for Tier 3 TTS degradation path"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ TagDispatcher (Feature) — 9 TRs ═══
+
+  - id: TR-tag-dispatcher-001
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "AutoLoad singleton; subscribes to StoryManager.tags_dispatched signal"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-002
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "AnimationHandler registration protocol: set_animation_handler() / null; is_instance_valid guard"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-003
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "Tag vocabulary: 2-segment vocab:, 3-segment vocab:correct/not_correct, anim:, record:invite:"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-004
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "Batch processing order: process all tags in array order; tts_not_required if no 2-segment vocab found"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-005
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "P2 Anti-Pillar: anim:happy and anim:confused executed unconditionally"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-006
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "vocab_text_map injected by StoryManager via set_vocab_text_map()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-007
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "VocabStore write contract: direct call to record_event() (both AutoLoad), not signal-routed"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-008
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "choices_ready word_id extracted by StoryManager from InkChoice.tags (not TagDispatcher)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-tag-dispatcher-009
+    system: tag-dispatcher
+    gdd: design/gdd/tag-dispatcher.md
+    requirement: "Unknown tags: push_warning, skip, do not interrupt batch"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ VoiceRecorder (Feature) — 14 TRs ═══
+
+  - id: TR-voice-recorder-001
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "AutoLoad singleton; 6-state machine: UNINITIALIZED, PERMISSION_REQUESTING, READY, RECORDING, SAVING, DISABLED"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-002
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "AudioStreamMicrophone + AudioEffectCapture on pre-created Microphone bus in editor"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-003
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "PCM buffer accumulated in PackedByteArray; single write via FileAccess.store_buffer() at stop"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-004
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "WAV header: ChunkSize = pcm_data_size + 36 (NOT +44); SampleRate from AudioServer.get_mix_rate()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-005
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "File naming: user://recordings/profile_{index}/{word_id}_{YYYYMMDDTHHmmssZ}.wav"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-006
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "MIN_RECORDING_FRAMES = floor(MIN_RECORDING_MS / 1000.0 * sample_rate)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-007
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "interrupt_and_commit() synchronous (no await); called by InterruptHandler"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-008
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "Recording-side and playback-side interfaces separated; no cross-calls"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-009
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "AudioStreamPlayer.process_mode must be PROCESS_MODE_ALWAYS for playback during SceneTree pause"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-010
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "profile_switch_requested handler: synchronous stop recording, discard buffer, clear references"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-011
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "active_profile_cleared('user_deleted') recursively deletes recording directory"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-012
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "OS.request_permissions_result callback signature — must verify on device"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-013
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "PCM negative sample two's complement truncation behavior needs real device verification"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-voice-recorder-014
+    system: voice-recorder
+    gdd: design/gdd/voice-recorder.md
+    requirement: "recording_paths field: VoiceRecorder is sole writer; multiple recordings per word append"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ MainMenu (Presentation) — 13 TRs ═══
+
+  - id: TR-main-menu-001
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Active profile precondition guard in _ready(); push_error if no active profile"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-002
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "T-Rex entry animation: trex_recognize for times_played > 0, trex_idle for times_played == 0"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-003
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Profile switcher visible only when get_profile_count() >= 2"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-004
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Launch sequence strict 7 steps"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-005
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "begin_session() called once per App visit, _session_started flag prevents repeat"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-006
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Parent button: 80x80dp, four-state, long-press with circular progress"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-007
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "PARENT_HOLD_DURATION = 5.0s with assert guard"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-008
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "LOAD_ERROR: _fail_count max 3 retries; 3rd failure shows tell adult link"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-009
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "SITTING_INACTIVITY_THRESHOLD independent of _fail_count (CD D2)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-010
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "LOAD_ERROR during RECOGNIZE: deferred confused via animation_completed signal"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-011
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Profile switcher: no optimistic UI update (must wait profile_switched signal)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-012
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "PROFILE_SWITCHING state: Depart on Adventure button unresponsive"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-main-menu-013
+    system: main-menu
+    gdd: design/gdd/main-menu.md
+    requirement: "Layout spec for 360x800dp portrait with exact element positions"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ HatchScene (Presentation) — 13 TRs ═══
+
+  - id: TR-hatch-scene-001
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Three-state machine: WAITING_FOR_TAP, HATCHING, COMPLETED; no backward transitions"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-002
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Minimum display protection: taps ignored before HATCH_IDLE_MIN_DISPLAY_MS expires"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-003
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Three-layer visual summoning: Layer 1 (tremble), Layer 2 (glow), Layer 3 (escalation)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-004
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Full-screen touch target (entire viewport, not egg sprite bounding box)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-005
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "HATCHING state: taps produce haptic + particle feedback but do not interrupt sequence"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-006
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Android back button: WAITING_FOR_TAP -> pass to OS; HATCHING -> intercept (no-op)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-007
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Celebrate hold with CELEBRATE_SKIP_LOCK_MS before tap can skip remaining"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-008
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Watchdog timer (HATCH_SEQUENCE_WATCHDOG_MS = 8000) for hatch_sequence_completed signal"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-009
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Rule 11: HatchScene must NOT call any SaveSystem or ProfileManager methods"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-010
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "AnimationHandler must be static child node, not dynamically instantiated"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-011
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Egg glow shader: 2D Unlit, pure brightness variation, max +30% emission, edge bleed <= 8dp"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-012
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "Performance: Draw Calls <= 20, CPUParticles2D <= 3 active, texture budget <= 2MB"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-hatch-scene-013
+    system: hatch-scene
+    gdd: design/gdd/hatch-scene.md
+    requirement: "GUT testability: wrapper methods for spy injection"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ NameInputScreen (Presentation) — 10 TRs ═══
+
+  - id: TR-name-input-001
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Entry guard: _ready() checks profile_exists(0); if true -> push_error, abort"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-002
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "LineEdit max_length = NAME_MAX_LENGTH (20, from ProfileManager constant)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-003
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Avatar selection: 5 options in 3+2 grid, bounce animation, 3dp accent border"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-004
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Confirm button disabled when LineEdit text is empty (after strip_edges + full-width space removal)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-005
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Skip button: always uses fixed default ('小朋友', avatar[0]); no confirmation dialog"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-006
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Creation + activation + navigation strict 6-step sequence"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-007
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "F-1 confirm_enabled predicate with full-width space (U+3000) handling"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-008
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Android back key: dismiss keyboard if visible; consume event if keyboard hidden"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-009
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Soft keyboard adaptation: ContentContainer Y-offset = keyboard height"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-name-input-010
+    system: name-input-screen
+    gdd: design/gdd/name-input-screen.md
+    requirement: "Only legitimate caller of ProfileManager.create_profile()"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ ParentVocabMap (Feature) — 9 TRs ═══
+
+  - id: TR-parent-vocab-map-001
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "CanvasLayer (layer=128); paused = true on open, false before queue_free"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-002
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "Long-press detection delegated to trigger scene, not ParentVocabMap itself"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-003
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "20dp drift tolerance for long-press finger movement"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-004
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "_ready() synchronously queries VocabStore (5 words x 3 methods) and VoiceRecorder"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-005
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "VoiceRecorder optional via is_instance_valid guard; missing -> hidden silently"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-006
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "Recording display: max MAX_RECORDINGS_DISPLAYED entries; always pin oldest recording"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-007
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "Close sequence: stop playback -> write parent_map_hint_dismissed -> unpause -> queue_free"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-008
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "gold_star_awarded signal subscription for live updates; is_queued_for_deletion() guard"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-parent-vocab-map-009
+    system: parent-vocab-map
+    gdd: design/gdd/parent-vocab-map.md
+    requirement: "Recording playback: only one at a time; new playback resets previous button state"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ PostcardGenerator (Feature) — 8 TRs ═══
+
+  - id: TR-postcard-gen-001
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "One-shot node (non-AutoLoad); GameScene guard prevents duplicate instantiation"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-002
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "_ready() synchronous data query: ProfileManager name + VocabStore gold_star_count x5"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-003
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "SubViewport build sequence (4 steps, strict order)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-004
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "Image write: OS.get_system_dir(SYSTEM_DIR_PICTURES) + '/TRexJourney/'; fallback path"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-005
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "Silent failure strategy: all error paths push_warning, no child-visible errors"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-006
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "File naming: postcard_ch{N}_{YYYYMMDD_HHmmss}.png"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-007
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "All paths via _finish(success, reason) -> emit signal -> queue_free()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-postcard-gen-008
+    system: postcard-generator
+    gdd: design/gdd/postcard-generator.md
+    requirement: "Postcard.tscn setup API: setup(child_name, star_data, card_order)"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ VocabPrimingLoader (Presentation) — 9 TRs ═══
+
+  - id: TR-vocab-priming-001
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Lifecycle: instantiated by GameScene; _ready() auto-starts sequence"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-002
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "_ready() static snapshot: batch query VocabStore.get_gold_star_count() x5"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-003
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Single Tween chain (no await) for all 5 cards + assembled hold + fade-out"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-004
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Cards accumulate (stay visible), not sequential show/hide"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-005
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "No interaction constraint: mouse_filter = MOUSE_FILTER_STOP, no buttons"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-006
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Three-tier gold star visual: FRESH (0), PROGRESSING (1-2), MASTERED (3+)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-007
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Interrupt tolerance via SceneTree.paused: Tween pauses/resumes automatically"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-008
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Signal: priming_complete emitted before queue_free(); only once per lifetime"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-vocab-priming-009
+    system: vocab-priming-loader
+    gdd: design/gdd/vocab-priming-loader.md
+    requirement: "Total duration must remain in [5.0, 8.0] seconds"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ Chapter2Teaser (Polish) — 7 TRs ═══
+
+  - id: TR-chapter2-teaser-001
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "One-shot lifecycle: instantiated by GameScene after PostcardGenerator completion"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-002
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "Two-phase animation: HOLDING -> FADING -> scene transition"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-003
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "TWEEN_TIMEOUT_SEC = 5.0s safety net"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-004
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "No input response: no _input, no _unhandled_input, no mouse interaction"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-005
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "_transitioning bool guard prevents double change_scene_to_file()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-006
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "SceneTree.paused integration: Tween and timer freeze when app backgrounds"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-chapter2-teaser-007
+    system: chapter2-teaser
+    gdd: design/gdd/chapter2-teaser.md
+    requirement: "All content hardcoded in scene file; zero data queries from any AutoLoad"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ AnimationHandler (Core) — 10 TRs ═══
+
+  - id: TR-animation-handler-001
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "Per-scene instance (not AutoLoad); each NPC scene owns its own AnimationHandler"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-002
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "14 logical states enum with 18 clips; NON_INTERRUPTIBLE_STATES guard"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-003
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "NON_INTERRUPTIBLE_STATES = {HATCH_CRACK, HATCH_EMERGE, HATCH_CELEBRATE, RECORDING_LISTEN, ENDING_WAVE, RECOGNIZE}"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-004
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "_transition(new_state) sole internal entry; custom_blend = 0.0 (2D hard cut)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-005
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "animation_finished routes to chain next state; RECOGNIZE -> MENU_IDLE + emit animation_completed"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-006
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "stop_recording_listen() bypasses NON_INTERRUPTIBLE guard (unique forced exit)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-007
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "RECOGNIZE is NON_INTERRUPTIBLE (CD D1): play_confused silently rejected; MainMenu uses deferred confused"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-008
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "CLIP_MAP and VARIANT_MAP constants; VARIANT_MAP uses Array.pick_random()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-009
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "AnimationPlayer must be named %AnimationPlayer in scene tree"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-animation-handler-010
+    system: animation-handler
+    gdd: design/gdd/animation-handler.md
+    requirement: "happy/confused clip duration: 0.5-2.0s; confused must be curious/funny (not sad/fearful) per P2"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ ChoiceUI (Presentation) — 10 TRs ═══
+
+  - id: TR-choice-ui-001
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "GameScene child node (not AutoLoad); lifecycle follows GameScene"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-002
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Three-state machine: HIDDEN, WAITING, SUBMITTED"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-003
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Button layout: 96dp min height, 44-46% screen width each"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-004
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Card structure: icon (>=60% area) + English word (20sp bold) + Chinese translation (10sp gray)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-005
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "P2 Anti-Pillar: both buttons visually identical; ChoiceUI does NOT know which is correct"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-006
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Rule 6: ChoiceUI does NOT subscribe to tts_fallback_to_highlight"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-007
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "chapter_interrupted handler: kill tween, immediate hide, no submit"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-008
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Focus mode = FOCUS_NONE for all buttons (Godot 4.6 dual-focus)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-009
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Choices must be exactly 2; < 2 triggers push_warning"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-choice-ui-010
+    system: choice-ui
+    gdd: design/gdd/choice-ui.md
+    requirement: "Multi-touch protection: state machine prevents double submit"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ InterruptHandler (Core) — 12 TRs ═══
+
+  - id: TR-interrupt-handler-001
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "AutoLoad singleton; process_mode = PROCESS_MODE_ALWAYS"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-002
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "_notification catches FOCUS_OUT, PAUSED, WM_GO_BACK_REQUEST, FOCUS_IN, RESUMED"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-003
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "_background_flush_pending anti-reentry for FOCUS_OUT + PAUSED dual-trigger"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-004
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "Back button: _unhandled_input for KEY_BACK + _notification for WM_GO_BACK_REQUEST"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-005
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "VoiceRecorder.interrupt_and_commit() called BEFORE request_chapter_interrupt() (P3 data contract)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-006
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "_on_chapter_interrupted(reason) handler: app_background -> flush; user_back -> flush + navigate; profile_switch -> no-op"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-007
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "FOCUS_IN recovery: if SM STOPPED and _ih_triggered_stop -> confirm_navigation_complete()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-008
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "BACK_BUTTON_GUARD_TIMEOUT_MS prevents permanent back_button lock"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-009
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "_ih_triggered_stop flag distinguishes IH-caused vs profile_switch-caused STOPPED"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-010
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "ui_cancel Input Map must include KEY_BACK (Godot 4 default does not map it)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-011
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "change_scene_to_file() return value checked; failure keeps _ih_triggered_stop for FOCUS_IN"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-interrupt-handler-012
+    system: interrupt-handler
+    gdd: design/gdd/interrupt-handler.md
+    requirement: "VoiceRecorder soft dependency: is_instance_valid guard; absent -> skip, continue flush"
+    created: "2026-05-09"
+    status: active
+
+  # ═══ RecordingInviteUI (Presentation) — 11 TRs ═══
+
+  - id: TR-recording-invite-001
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "GameScene child node (non-AutoLoad); one instance per scene"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-002
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "Signal subscriptions: recording_invite_triggered, recording_saved, recording_failed, recording_unavailable, recording_interrupted"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-003
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "Appearance guard: is_recording_available() check; re-entrant guard prevents overlapping invites"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-004
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "Hold-to-record via _input() (not gui_input()) to prevent UI event swallowing"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-005
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "INVITE_TIMEOUT_SEC = 12.0s; timer pauses during recording"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-006
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "recording_saved -> T-Rex ack animation -> DISMISSING"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-007
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "recording_failed -> silent dismiss; no error text, no red elements (P2)"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-008
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "recording_interrupted: RECORDING -> immediate DISMISSING without calling stop_recording()"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-009
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "stop_recording_listen() called in SAVING phase, NOT during RECORDING"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-010
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "Button size >= 96dp; SkipButton >= 48dp"
+    created: "2026-05-09"
+    status: active
+
+  - id: TR-recording-invite-011
+    system: recording-invite-ui
+    gdd: design/gdd/recording-invite-ui.md
+    requirement: "recording_invite_dismissed(skipped: bool) signal: false = attempted, true = skip/timeout"
+    created: "2026-05-09"
+    status: active

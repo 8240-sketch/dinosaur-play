@@ -1,7 +1,7 @@
 # ADR-0007: AutoLoad Initialization Order and Boot Protocol
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08
@@ -15,7 +15,7 @@ Proposed
 | **Knowledge Risk** | LOW — AutoLoad loading order and `_ready()` execution are stable across all Godot 4.x versions |
 | **References Consulted** | `docs/engine-reference/godot/VERSION.md` |
 | **Post-Cutoff APIs Used** | None — AutoLoad mechanics are unchanged since Godot 4.0 |
-| **Verification Required** | Boot test: verify all 8 AutoLoads initialize without errors; verify no `_ready()` calls upstream API before it's available |
+| **Verification Required** | Boot test: verify all 9 AutoLoads initialize without errors; verify no `_ready()` calls upstream API before it's available |
 
 ## ADR Dependencies
 
@@ -30,13 +30,13 @@ Proposed
 
 ### Problem Statement
 
-Godot loads AutoLoad singletons sequentially in Project Settings order, calling `_ready()` on each before proceeding to the next. With 8 AutoLoads in this project, the loading order determines which APIs are available at `_ready()` time. If a downstream system's `_ready()` calls an upstream API that hasn't been initialized yet, the call crashes with a null reference.
+Godot loads AutoLoad singletons sequentially in Project Settings order, calling `_ready()` on each before proceeding to the next. With 9 AutoLoads in this project, the loading order determines which APIs are available at `_ready()` time. If a downstream system's `_ready()` calls an upstream API that hasn't been initialized yet, the call crashes with a null reference.
 
 This ADR formalizes the mandatory loading order and documents which systems must be connected before any scene loads.
 
 ### Constraints
 - Godot AutoLoad loading order is set in Project Settings — cannot be changed at runtime
-- 8 AutoLoads is near Godot's practical ceiling (LP-CONCERN-1 from architecture review)
+- 9 AutoLoads is near Godot's practical ceiling (LP-CONCERN-1 from architecture review)
 - Some `_ready()` methods perform I/O (SaveSystem .tmp scan, VoiceRecorder permission request)
 - Scene tree loads AFTER all AutoLoads have `_ready()`'d
 
@@ -164,7 +164,7 @@ func _ready() -> void:
 - **Description**: AutoLoads load in arbitrary order; each system defers its `_ready()` logic until all dependencies signal readiness via a shared "boot complete" signal.
 - **Pros**: No ordering constraint; systems can be added/removed without editing Project Settings
 - **Cons**: Adds a boot-state machine (UNREADY/READY); every system must handle deferred init; increases code complexity significantly; debugging boot order failures becomes harder
-- **Rejection Reason**: Over-engineering for 8 systems with a clear, static dependency graph. The fixed order is simple, verifiable, and matches Godot's native loading model.
+- **Rejection Reason**: Over-engineering for 9 systems with a clear, static dependency graph. The fixed order is simple, verifiable, and matches Godot's native loading model.
 
 ### Alternative C: Dependency Injection Container
 
@@ -179,11 +179,11 @@ func _ready() -> void:
 - **Simplicity**: Fixed order is easy to understand, document, and verify
 - **No new engine APIs**: Uses Godot's native AutoLoad mechanism
 - **Debuggable**: If a system crashes at _ready(), the loading order immediately identifies the missing dependency
-- **LP-CONCERN-1 addressed**: Boot profiling can determine if 8 AutoLoads are too many; merging option documented
+- **LP-CONCERN-1 addressed**: Boot profiling can determine if 9 AutoLoads are too many; merging option documented
 
 ### Negative
 - **Loading order is a global constraint**: Adding a new AutoLoad requires checking where it fits in the dependency chain and editing Project Settings
-- **8 AutoLoads near ceiling**: LP flagged this as aggressive; boot time may be an issue on low-end Android devices
+- **9 AutoLoads near ceiling**: LP flagged this as aggressive; boot time may be an issue on low-end Android devices
 - **No runtime flexibility**: Cannot defer or lazy-load AutoLoads based on scene needs
 
 ### Risks
@@ -205,8 +205,8 @@ func _ready() -> void:
 | architecture.md | Initialization Order section | This ADR formalizes that section |
 
 ## Performance Implications
-- **CPU**: 8 × `_ready()` total: <50ms (SaveSystem .tmp scan ~1ms, ProfileManager load ~1ms, others <1ms each)
-- **Memory**: 8 AutoLoad instances at boot: ~50KB total (Node overhead + script state)
+- **CPU**: 9 × `_ready()` total: <50ms (SaveSystem .tmp scan ~1ms, ProfileManager load ~1ms, others <1ms each)
+- **Memory**: 9 AutoLoad instances at boot: ~55KB total (Node overhead + script state)
 - **Load Time**: Boot sequence total: <100ms on mid-range device; <200ms on low-end
 - **Network**: N/A
 
@@ -214,10 +214,10 @@ func _ready() -> void:
 
 This ADR defines the initial architecture. No migration needed.
 
-If a future ADR adds a 9th AutoLoad (e.g., AudioManager), it must be inserted at the correct position in the dependency chain and Project Settings must be updated.
+AudioManager (ADR-0008) has been added as the 9th AutoLoad at position ⑤. Project Settings must reflect this order.
 
 ## Validation Criteria
-1. All 8 AutoLoads initialize without null reference errors (boot test)
+1. All 9 AutoLoads initialize without null reference errors (boot test)
 2. StoryManager._ready() can access VocabStore, TtsBridge (dependency chain verified)
 3. InterruptHandler._ready() can connect to StoryManager and VoiceRecorder signals
 4. Total boot time <200ms on target device (Week 1 profiling)

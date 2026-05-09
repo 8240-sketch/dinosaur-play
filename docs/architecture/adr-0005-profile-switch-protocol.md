@@ -1,7 +1,7 @@
 # ADR-0005: ProfileManager Profile Switch Synchronous Protocol
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08

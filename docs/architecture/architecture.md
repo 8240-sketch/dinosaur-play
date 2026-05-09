@@ -4,13 +4,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1 |
-| **Last Updated** | 2026-05-08 |
+| **Version** | 2 |
+| **Last Updated** | 2026-05-09 |
 | **Engine** | Godot 4.6 Standard (non-Mono) |
 | **Language** | GDScript (static typing) |
 | **Platform** | Android API 24+ |
 | **GDDs Covered** | 18/18 — SaveSystem, ProfileManager, VocabStore, AnimationHandler, TtsBridge, StoryManager, TagDispatcher, VoiceRecorder, InterruptHandler, ChoiceUI, MainMenu, HatchScene, NameInputScreen, RecordingInviteUI, VocabPrimingLoader, PostcardGenerator, ParentVocabMap, Chapter2Teaser |
-| **ADRs Referenced** | ADR-0001 (inkgd Runtime), ADR-0002 (TTS Provider Interface), ADR-0003 (Android Gallery Save) |
+| **ADRs Referenced** | ADR-0001 (inkgd Runtime), ADR-0002 (TTS Provider Interface), ADR-0003 (Android Gallery Save), ADR-0004 (SaveSystem Atomic Write), ADR-0005 (ProfileManager Switch Protocol), ADR-0006 (VocabStore Formula), ADR-0007 (AutoLoad Init Order), ADR-0008 (AudioManager BGM), ADR-0009 (VoiceRecorder Android), ADR-0010 (StoryManager Narrative Engine), ADR-0011 (AnimationHandler State Machine), ADR-0012 (InterruptHandler Platform), ADR-0013 (TagDispatcher Protocol), ADR-0014 (MainMenu Launch Sequence), ADR-0015 (RecordingInviteUI Interaction), ADR-0016 (HatchScene Ceremony), ADR-0017 (NameInputScreen), ADR-0018 (VocabPrimingLoader), ADR-0019 (Chapter2Teaser), ADR-0020 (ChoiceUI), ADR-0021 (ParentVocabMap), ADR-0022 (PostcardGenerator), ADR-0023 (ProfileManager Details), ADR-0024 (TtsBridge Details) |
 | **Technical Requirements** | 176 TRs across 18 GDDs |
 | **Review Mode** | full |
 | **Technical Director Sign-Off** | 2026-05-08 — APPROVED |
@@ -66,7 +66,8 @@
 │  PostcardGenerator · ParentVocabMap · Chapter2Teaser        │
 ├─────────────────────────────────────────────────────────────┤
 │  CORE LAYER                                                 │
-│  AnimationHandler · TtsBridge · InterruptHandler            │
+│  AnimationHandler · TtsBridge · AudioManager ·              │
+│  InterruptHandler                                          │
 ├─────────────────────────────────────────────────────────────┤
 │  FOUNDATION LAYER                                           │
 │  SaveSystem · ProfileManager · VocabStore                   │
@@ -86,12 +87,13 @@
 | **ProfileManager** | Active profile state, switch protocol, `_active_data` single authority | 唯一入口：档案数据的唯一权威 |
 | **VocabStore** | Word counters, gold star formula, session counters | 唯一读写者：词汇数据的唯一所有者 |
 
-**Core (3 systems)** — Engine-bridge layer; wrap Godot APIs for upper layers.
+**Core (4 systems)** — Engine-bridge layer; wrap Godot APIs for upper layers.
 
 | System | Owns | Engine APIs |
 |--------|------|------------|
 | **AnimationHandler** ⚠️ | 14-state animation machine, play/interrupt logic | AnimationPlayer (4.3 base class change) |
 | **TtsBridge** ⚠️ | TTS 3-tier fallback, AI HTTP, audio cache | DisplayServer TTS, HTTPRequest, @abstract (4.5) |
+| **AudioManager** | BGM playback, cross-scene audio persistence, BGM bus management | AudioStreamPlayer, Tween (fades) |
 | **InterruptHandler** ⚠️ | Background/back-button/call interrupt protocol | _notification(), PROCESS_MODE_ALWAYS, ui_cancel InputMap |
 
 **Feature (6 systems)** — Gameplay logic; depends on Foundation + Core.
@@ -136,7 +138,7 @@
 |--------|------|---------|----------|-------------|
 | **SaveSystem** | All `.json` file I/O; schema version; atomic write protocol | `load(index)`, `flush(index, data)`, `delete_profile(index)`, `get_save_path(index)` | None | `FileAccess`, `DirAccess`, `JSON`, `Time` |
 | **ProfileManager** | `_active_data` single authority; 4-state machine | `switch_to_profile()`, `create_profile()`, `get_section()`, `begin_session()`, signals: `profile_switch_requested`, `profile_switched`, `active_profile_cleared` | SaveSystem | `Time` (UTC timestamps) |
-| **VocabStore** | `_vocab_data` (ProfileManager section ref); `_session_counters` (session-only); gold star formula | `correct_event()`, `not_correct_event()`, `get_gold_star_count()`, `get_session_count()`, signals: `gold_star_awarded`, `word_learned` | ProfileManager (read section), SaveSystem (flush) | None |
+| **VocabStore** | `_vocab_data` (ProfileManager section ref); `_session_counters` (session-only); gold star formula | `record_event(word_id, EventType)`, `get_gold_star_count()`, `get_session_count()`, `begin_chapter_session()`, `end_chapter_session()`, `reset_session()`, signals: `gold_star_awarded`, `word_learned` | ProfileManager (read section), SaveSystem (flush) | None |
 
 ### Core Layer
 
@@ -301,13 +303,17 @@ MainMenu taps profile card
 | `profile.avatar_id` | NameInputScreen | create_profile() |
 | `profile.times_played` | MainMenu | begin_session() (sole write point) |
 | `profile.parent_map_hint_dismissed` | ParentVocabMap | close() |
-| `vocab_progress.*` | VocabStore | correct_event() / not_correct_event() |
-| `vocab_progress.*.recording_paths` | VoiceRecorder | stop_recording() |
+| `vocab_progress.*.gold_star_count` | VocabStore | record_event() (gold star award) |
+| `vocab_progress.*.is_learned` | VocabStore | record_event() (monotonic, never reverts) |
+| `vocab_progress.*.first_star_at` | VocabStore | record_event() (write-once, null to timestamp) |
+| `vocab_progress.*.seen` | VocabStore | record_event() (session-only, not persisted) |
+| `vocab_progress.*.correct` | VocabStore | record_event() (session-only, not persisted) |
+| `vocab_progress.*.recording_paths` | VoiceRecorder | stop_recording() (sole writer, append) |
 | `story_progress.*` | StoryManager | chapter_completed() |
 
 ### 4. Initialization Order
 
-> **LP-CONCERN-1**: 8 个 AutoLoad 接近 Godot 实用上限。启动时序受 `_ready()` 阻塞影响。
+> **LP-CONCERN-1**: 9 个 AutoLoad 接近 Godot 实用上限。启动时序受 `_ready()` 阻塞影响。
 > **缓解措施**：(a) 首次 build 后立即 profiling 启动时间；(b) 若 >500ms，考虑将 InterruptHandler 合并入 StoryManager（它无公开 API，仅调用 SM + VR）。
 
 ```
@@ -317,7 +323,7 @@ App Launch
  Godot Engine boots
     │
     ▼
- AutoLoad singletons (Project Settings order):
+ AutoLoad singletons (Project Settings order — ADR-0007):
     │
     ├─ ① SaveSystem          ← Foundation, no deps
     │     └─ _ready(): .tmp recovery scan
@@ -331,16 +337,19 @@ App Launch
     ├─ ④ TtsBridge           ← no game deps (configure() deferred)
     │     └─ _ready(): add HTTPRequest child, AudioStreamPlayer child
     │
-    ├─ ⑤ StoryManager        ← depends on VocabStore, TtsBridge, TagDispatcher
+    ├─ ⑤ AudioManager        ← no game deps (ADR-0008)
+    │     └─ _ready(): trivial (< 0.1ms)
+    │
+    ├─ ⑥ StoryManager        ← depends on VocabStore, TtsBridge, TagDispatcher
     │     └─ _ready(): assert InkRuntime != null
     │
-    ├─ ⑥ TagDispatcher       ← depends on StoryManager, AnimationHandler
+    ├─ ⑦ TagDispatcher       ← depends on StoryManager, AnimationHandler
     │     └─ _ready(): empty (registration deferred to begin_chapter)
     │
-    ├─ ⑦ VoiceRecorder       ← depends on ProfileManager, SaveSystem
+    ├─ ⑧ VoiceRecorder       ← depends on ProfileManager, SaveSystem
     │     └─ _ready(): request RECORD_AUDIO permission
     │
-    └─ ⑧ InterruptHandler    ← depends on StoryManager, VoiceRecorder
+    └─ ⑨ InterruptHandler    ← depends on StoryManager, VoiceRecorder
           └─ _ready(): connect to SM + VR signals
     │
     ▼
@@ -456,10 +465,9 @@ class_name VocabStore extends Node
 signal gold_star_awarded(word_id: String, new_star_count: int)
 signal word_learned(word_id: String)
 
-func correct_event(word_id: String) -> void:
-
-func not_correct_event(word_id: String) -> void:
-    # NEVER connects to scoring/feedback (Anti-P2)
+func record_event(word_id: String, event_type: EventType) -> void:
+    # EventType: PRESENTED, SELECTED_CORRECT, NOT_CORRECT
+    # NOT_CORRECT: intentionally no-op — no counters, no signals, no feedback (Anti-P2)
 
 func get_gold_star_count(word_id: String) -> int:
 

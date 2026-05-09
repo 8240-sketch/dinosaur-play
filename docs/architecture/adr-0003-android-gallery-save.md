@@ -1,7 +1,7 @@
 # ADR-0003: Android 图库保存策略（PostcardGenerator）
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-08

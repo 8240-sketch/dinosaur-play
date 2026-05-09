@@ -1,7 +1,7 @@
 # ADR-0001: inkgd Runtime vs. Custom JSON State Machine
 
 ## Status
-Proposed
+Accepted (2026-05-09)
 
 ## Date
 2026-05-06
