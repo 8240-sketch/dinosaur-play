@@ -30,6 +30,10 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/inkgd/plu
 
 register_templates=true
 
+[autoload]
+
+SaveSystem="*res://src/foundation/save_system.gd"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
