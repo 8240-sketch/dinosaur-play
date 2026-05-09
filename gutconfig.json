@@ -1,0 +1,14 @@
+{
+  "dirs": [
+    "res://tests/unit/",
+    "res://tests/integration/"
+  ],
+  "include_subdirs": true,
+  "prefix": "",
+  "suffix": "_test.gd",
+  "post_run_script": "",
+  "should_exit": true,
+  "should_exit_on_success": false,
+  "log_level": 1,
+  "hide_orphans": false
+}

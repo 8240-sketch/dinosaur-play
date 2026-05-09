@@ -1,0 +1,49 @@
+{
+  "inkVersion": 21,
+  "root": [
+    [
+      "你发现了一只恐龙！它正在看着你。",
+      "\n",
+      {
+        "c": [
+          "T-Rex",
+          {
+            "#": "tts T-Rex"
+          },
+          [
+            "你选择了 T-Rex！它高兴地跳了起来。",
+            "\n",
+            {
+              "#": "anim happy_1"
+            },
+            {
+              "#": "vocab T-Rex correct"
+            },
+            "-> END"
+          ]
+        ],
+        "a": true
+      },
+      {
+        "c": [
+          "Triceratops",
+          {
+            "#": "tts Triceratops"
+          },
+          [
+            "你选择了 Triceratops！它温柔地看着你。",
+            "\n",
+            {
+              "#": "anim happy_2"
+            },
+            {
+              "#": "vocab Triceratops correct"
+            },
+            "-> END"
+          ]
+        ]
+      }
+    ]
+  ],
+  "listDefs": {}
+}
