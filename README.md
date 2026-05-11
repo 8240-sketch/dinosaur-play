@@ -1,302 +1,193 @@
 <p align="center">
-  <h1 align="center">Claude Code Game Studios</h1>
+  <h1 align="center">🦕 Baby Play — 恐龙英语叙事启蒙游戏</h1>
   <p align="center">
-    Turn a single Claude Code session into a full game development studio.
+    教恐龙说英文。孩子的第一声「T-Rex!」被悄悄录下来。
     <br />
-    49 agents. 72 skills. One coordinated AI team.
+    面向 4–6 岁中文母语孩子的 Android 叙事游戏，Godot 4 + inkgd 驱动。
   </p>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href=".claude/agents"><img src="https://img.shields.io/badge/agents-49-blueviolet" alt="49 Agents"></a>
-  <a href=".claude/skills"><img src="https://img.shields.io/badge/skills-72-green" alt="72 Skills"></a>
-  <a href=".claude/hooks"><img src="https://img.shields.io/badge/hooks-12-orange" alt="12 Hooks"></a>
-  <a href=".claude/rules"><img src="https://img.shields.io/badge/rules-11-red" alt="11 Rules"></a>
-  <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/built%20for-Claude%20Code-f5f5f5?logo=anthropic" alt="Built for Claude Code"></a>
-  <a href="https://www.buymeacoffee.com/donchitos3"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20this%20project-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
-  <a href="https://github.com/sponsors/Donchitos"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Support%20this%20project-ea4aaa?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
+  <img src="https://img.shields.io/badge/platform-Android%20API%2024%2B-green" alt="Android API 24+">
+  <img src="https://img.shields.io/badge/engine-Godot%204.x-blue?logo=godotengine" alt="Godot 4">
+  <img src="https://img.shields.io/badge/narrative-inkgd-purple" alt="inkgd">
+  <img src="https://img.shields.io/badge/stage-Pre--Production-orange" alt="Pre-Production">
+  <img src="https://img.shields.io/badge/built%20with-Claude%20Code%20Game%20Studios-f5f5f5?logo=anthropic" alt="Built with Claude Code Game Studios">
 </p>
 
 ---
 
-## Why This Exists
+## 这是什么
 
-Building a game solo with AI is powerful — but a single chat session has no structure. No one stops you from hardcoding magic numbers, skipping design docs, or writing spaghetti code. There's no QA pass, no design review, no one asking "does this actually fit the game's vision?"
+Baby Play 是一款面向 **4–6 岁中文母语孩子**的恐龙主题英语叙事游戏。孩子通过触屏选择英文单词图标来推进 T-Rex 的故事——不是背单词，不是做练习题，而是**教恐龙说话**。
 
-**Claude Code Game Studios** solves this by giving your AI session the structure of a real studio. Instead of one general-purpose assistant, you get 49 specialized agents organized into a studio hierarchy — directors who guard the vision, department leads who own their domains, and specialists who do the hands-on work. Each agent has defined responsibilities, escalation paths, and quality gates.
+**孩子的视角**：「我教恐龙说英文，恐龙听懂了我。」  
+**家长看到的**：明信片发朋友圈，词汇地图里有金星，六个月后还能回放孩子当年那声稚嫩的「T-Rex!」。
 
-The result: you still make every decision, but now you have a team that asks the right questions, catches mistakes early, and keeps your project organized from first brainstorm to launch.
-
----
-
-## Table of Contents
-
-- [What's Included](#whats-included)
-- [Studio Hierarchy](#studio-hierarchy)
-- [Slash Commands](#slash-commands)
-- [Getting Started](#getting-started)
-- [Upgrading](#upgrading)
-- [Project Structure](#project-structure)
-- [How It Works](#how-it-works)
-- [Design Philosophy](#design-philosophy)
-- [Customization](#customization)
-- [Platform Support](#platform-support)
-- [Community](#community)
-- [Supporting This Project](#supporting-this-project)
-- [License](#license)
+> 孩子不会说「我在学英语」，她只会说「我还要玩」。
 
 ---
 
-## What's Included
+## 核心体验
 
-| Category | Count | Description |
-|----------|-------|-------------|
-| **Agents** | 49 | Specialized subagents across design, programming, art, audio, narrative, QA, and production |
-| **Skills** | 72 | Slash commands for every workflow phase (`/start`, `/design-system`, `/create-epics`, `/create-stories`, `/dev-story`, `/story-done`, etc.) |
-| **Hooks** | 12 | Automated validation on commits, pushes, asset changes, session lifecycle, agent audit trail, and gap detection |
-| **Rules** | 11 | Path-scoped coding standards enforced when editing gameplay, engine, AI, UI, network code, and more |
-| **Templates** | 39 | Document templates for GDDs, UX specs, ADRs, sprint plans, HUD design, accessibility, and more |
+**第一章：恐龙营地（5 词汇 · 5–10 分钟 · 2 种结局）**
 
-## Studio Hierarchy
+| 目标词汇 | 在故事里的作用 |
+|---------|-------------|
+| T-Rex | 认识主角，开场关键词 |
+| Triceratops | 遇见朋友，选择分支 |
+| eat | 恐龙行为，剧情推进 |
+| run | 逃跑 vs 留下，结局关键 |
+| big | 最终 Boss 选择，结局 A/B 分叉 |
 
-Agents are organized into three tiers, matching how real studios operate:
-
-```
-Tier 1 — Directors (Opus)
-  creative-director    technical-director    producer
-
-Tier 2 — Department Leads (Sonnet)
-  game-designer        lead-programmer       art-director
-  audio-director       narrative-director    qa-lead
-  release-manager      localization-lead
-
-Tier 3 — Specialists (Sonnet/Haiku)
-  gameplay-programmer  engine-programmer     ai-programmer
-  network-programmer   tools-programmer      ui-programmer
-  systems-designer     level-designer        economy-designer
-  technical-artist     sound-designer        writer
-  world-builder        ux-designer           prototyper
-  performance-analyst  devops-engineer       analytics-engineer
-  security-engineer    qa-tester             accessibility-specialist
-  live-ops-designer    community-manager
-```
-
-### Engine Specialists
-
-The template includes agent sets for all three major engines. Use the set that matches your project:
-
-| Engine | Lead Agent | Sub-Specialists |
-|--------|-----------|-----------------|
-| **Godot 4** | `godot-specialist` | GDScript, Shaders, GDExtension |
-| **Unity** | `unity-specialist` | DOTS/ECS, Shaders/VFX, Addressables, UI Toolkit |
-| **Unreal Engine 5** | `unreal-specialist` | GAS, Blueprints, Replication, UMG/CommonUI |
-
-## Slash Commands
-
-Type `/` in Claude Code to access all 72 skills:
-
-**Onboarding & Navigation**
-`/start` `/help` `/project-stage-detect` `/setup-engine` `/adopt`
-
-**Game Design**
-`/brainstorm` `/map-systems` `/design-system` `/quick-design` `/review-all-gdds` `/propagate-design-change`
-
-**Art & Assets**
-`/art-bible` `/asset-spec` `/asset-audit`
-
-**UX & Interface Design**
-`/ux-design` `/ux-review`
-
-**Architecture**
-`/create-architecture` `/architecture-decision` `/architecture-review` `/create-control-manifest`
-
-**Stories & Sprints**
-`/create-epics` `/create-stories` `/dev-story` `/sprint-plan` `/sprint-status` `/story-readiness` `/story-done` `/estimate`
-
-**Reviews & Analysis**
-`/design-review` `/code-review` `/balance-check` `/content-audit` `/scope-check` `/perf-profile` `/tech-debt` `/gate-check` `/consistency-check`
-
-**QA & Testing**
-`/qa-plan` `/smoke-check` `/soak-test` `/regression-suite` `/test-setup` `/test-helpers` `/test-evidence-review` `/test-flakiness` `/skill-test` `/skill-improve`
-
-**Production**
-`/milestone-review` `/retrospective` `/bug-report` `/bug-triage` `/reverse-document` `/playtest-report`
-
-**Release**
-`/release-checklist` `/launch-checklist` `/changelog` `/patch-notes` `/hotfix`
-
-**Creative & Content**
-`/prototype` `/onboard` `/localize`
-
-**Team Orchestration** (coordinate multiple agents on a single feature)
-`/team-combat` `/team-narrative` `/team-ui` `/team-release` `/team-polish` `/team-audio` `/team-level` `/team-live-ops` `/team-qa`
-
-## Getting Started
-
-### Prerequisites
-
-- [Git](https://git-scm.com/)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`)
-- **Recommended**: [jq](https://jqlang.github.io/jq/) (for hook validation) and Python 3 (for JSON validation)
-
-All hooks fail gracefully if optional tools are missing — nothing breaks, you just lose validation.
-
-### Setup
-
-1. **Clone or use as template**:
-   ```bash
-   git clone https://github.com/Donchitos/Claude-Code-Game-Studios.git my-game
-   cd my-game
-   ```
-
-2. **Open Claude Code** and start a session:
-   ```bash
-   claude
-   ```
-
-3. **Run `/start`** — the system asks where you are (no idea, vague concept,
-   clear design, existing work) and guides you to the right workflow. No assumptions.
-
-   Or jump directly to a specific skill if you already know what you need:
-   - `/brainstorm` — explore game ideas from scratch
-   - `/setup-engine godot 4.6` — configure your engine if you already know
-   - `/project-stage-detect` — analyze an existing project
-
-## Upgrading
-
-Already using an older version of this template? See [UPGRADING.md](UPGRADING.md)
-for step-by-step migration instructions, a breakdown of what changed between
-versions, and which files are safe to overwrite vs. which need a manual merge.
-
-## Project Structure
+**核心循环：**
 
 ```
-CLAUDE.md                           # Master configuration
-.claude/
-  settings.json                     # Hooks, permissions, safety rules
-  agents/                           # 49 agent definitions (markdown + YAML frontmatter)
-  skills/                           # 72 slash commands (subdirectory per skill)
-  hooks/                            # 12 hook scripts (bash, cross-platform)
-  rules/                            # 11 path-scoped coding standards
-  statusline.sh                     # Status line script (context%, model, stage, epic breadcrumb)
-  docs/
-    workflow-catalog.yaml           # 7-phase pipeline definition (read by /help)
-    templates/                      # 39 document templates
-src/                                # Game source code
-assets/                             # Art, audio, VFX, shaders, data files
-design/                             # GDDs, narrative docs, level designs
-docs/                               # Technical documentation and ADRs
-tests/                              # Test suites (unit, integration, performance, playtest)
-tools/                              # Build and pipeline tools
-prototypes/                         # Throwaway prototypes (isolated from src/)
-production/                         # Sprint plans, milestones, release tracking
+30秒触屏选英文图标（视觉二选一，无文字压力）
+    ↓
+T-Rex 即时反应：3种随机 happy 动画 + 设备TTS发音
+    ↓
+录音邀请（可选）：孩子说出单词，声音存入回忆本
+    ↓
+5分钟通关 → 词汇金星 + 可分享恐龙明信片 + 第2章预告
 ```
 
-## How It Works
-
-### Agent Coordination
-
-Agents follow a structured delegation model:
-
-1. **Vertical delegation** — directors delegate to leads, leads delegate to specialists
-2. **Horizontal consultation** — same-tier agents can consult each other but can't make binding cross-domain decisions
-3. **Conflict resolution** — disagreements escalate up to the shared parent (`creative-director` for design, `technical-director` for technical)
-4. **Change propagation** — cross-department changes are coordinated by `producer`
-5. **Domain boundaries** — agents don't modify files outside their domain without explicit delegation
-
-### Collaborative, Not Autonomous
-
-This is **not** an auto-pilot system. Every agent follows a strict collaboration protocol:
-
-1. **Ask** — agents ask questions before proposing solutions
-2. **Present options** — agents show 2-4 options with pros/cons
-3. **You decide** — the user always makes the call
-4. **Draft** — agents show work before finalizing
-5. **Approve** — nothing gets written without your sign-off
-
-You stay in control. The agents provide structure and expertise, not autonomy.
-
-### Automated Safety
-
-**Hooks** run automatically on every session:
-
-| Hook | Trigger | What It Does |
-|------|---------|--------------|
-| `validate-commit.sh` | PreToolUse (Bash) | Checks for hardcoded values, TODO format, JSON validity, design doc sections — exits early if the command is not `git commit` |
-| `validate-push.sh` | PreToolUse (Bash) | Warns on pushes to protected branches — exits early if the command is not `git push` |
-| `validate-assets.sh` | PostToolUse (Write/Edit) | Validates naming conventions and JSON structure — exits early if the file is not in `assets/` |
-| `session-start.sh` | Session open | Shows current branch and recent commits for orientation |
-| `detect-gaps.sh` | Session open | Detects fresh projects (suggests `/start`) and missing design docs when code or prototypes exist |
-| `pre-compact.sh` | Before compaction | Preserves session progress notes |
-| `post-compact.sh` | After compaction | Reminds Claude to restore session state from `active.md` |
-| `notify.sh` | Notification event | Shows Windows toast notification via PowerShell |
-| `session-stop.sh` | Session close | Archives `active.md` to session log and records git activity |
-| `log-agent.sh` | Agent spawned | Audit trail start — logs subagent invocation |
-| `log-agent-stop.sh` | Agent stops | Audit trail stop — completes subagent record |
-| `validate-skill-change.sh` | PostToolUse (Write/Edit) | Advises running `/skill-test` after any `.claude/skills/` change |
-
-> **Note**: `validate-commit.sh`, `validate-assets.sh`, and `validate-skill-change.sh` fire on every Bash/Write tool call and exit immediately (exit 0) when the command or file path is not relevant. This is normal hook behavior — not a performance concern.
-
-**Permission rules** in `settings.json` auto-allow safe operations (git status, test runs) and block dangerous ones (force push, `rm -rf`, reading `.env` files).
-
-### Path-Scoped Rules
-
-Coding standards are automatically enforced based on file location:
-
-| Path | Enforces |
-|------|----------|
-| `src/gameplay/**` | Data-driven values, delta time usage, no UI references |
-| `src/core/**` | Zero allocations in hot paths, thread safety, API stability |
-| `src/ai/**` | Performance budgets, debuggability, data-driven parameters |
-| `src/networking/**` | Server-authoritative, versioned messages, security |
-| `src/ui/**` | No game state ownership, localization-ready, accessibility |
-| `design/gdd/**` | Required 8 sections, formula format, edge cases |
-| `tests/**` | Test naming, coverage requirements, fixture patterns |
-| `prototypes/**` | Relaxed standards, README required, hypothesis documented |
-
-## Design Philosophy
-
-This template is grounded in professional game development practices:
-
-- **MDA Framework** — Mechanics, Dynamics, Aesthetics analysis for game design
-- **Self-Determination Theory** — Autonomy, Competence, Relatedness for player motivation
-- **Flow State Design** — Challenge-skill balance for player engagement
-- **Bartle Player Types** — Audience targeting and validation
-- **Verification-Driven Development** — Tests first, then implementation
-
-## Customization
-
-This is a **template**, not a locked framework. Everything is meant to be customized:
-
-- **Add/remove agents** — delete agent files you don't need, add new ones for your domains
-- **Edit agent prompts** — tune agent behavior, add project-specific knowledge
-- **Modify skills** — adjust workflows to match your team's process
-- **Add rules** — create new path-scoped rules for your project's directory structure
-- **Tune hooks** — adjust validation strictness, add new checks
-- **Pick your engine** — use the Godot, Unity, or Unreal agent set (or none)
-- **Set review intensity** — `full` (all director gates), `lean` (phase gates only), or `solo` (none). Set during `/start` or edit `production/review-mode.txt`. Override per-run with `--review solo` on any skill.
-
-## Platform Support
-
-Tested on **Windows 10** with Git Bash. All hooks use POSIX-compatible patterns (`grep -E`, not `grep -P`) and include fallbacks for missing tools. Works on macOS and Linux without modification.
-
-## Community
-
-- **Discussions** — [GitHub Discussions](https://github.com/Donchitos/Claude-Code-Game-Studios/discussions) for questions, ideas, and showcasing what you've built
-- **Issues** — [Bug reports and feature requests](https://github.com/Donchitos/Claude-Code-Game-Studios/issues)
+**失败是另一条好玩的路**：选错单词，T-Rex 做出滑稽的「听不懂」动作后友好挥手——无红色、无倒计时、无扣分，confused 动画是彩蛋而非惩罚。
 
 ---
 
-## Supporting This Project
+## 功能特性
 
-Claude Code Game Studios is free and open source. If it saves you time or helps you ship your game, consider supporting continued development:
+### 孩子侧
+- **叙事驱动**：ink 剧本引擎（inkgd），3个分支点，结局 A（成为朋友）/ 结局 B（趣味逃跑 + T-Rex 远处挥手）
+- **TTS 发音**：触选正确后设备内置 TTS 即时朗读英文单词；无 TTS 引擎时降级为词汇高亮，流程不中断
+- **NPC 记忆**：第二次游玩时 T-Rex 认出孩子，专属欢迎动作
+- **孵化彩蛋**：首次启动时恐龙蛋破壳动画（5秒），第一次握手的仪式感
+- **词汇预热**：场景加载时词汇图标静默滑过，priming 效果零感知
 
-<p>
-  <a href="https://www.buymeacoffee.com/donchitos3"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee"></a>
-  &nbsp;
-  <a href="https://github.com/sponsors/Donchitos"><img src="https://img.shields.io/badge/GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
-</p>
+### 家长侧
+- **词汇地图**：每个单词的出现次数、正确率、金星（≥80% 正确率自动点亮）
+- **声音回忆本**：孩子选对后可选择录音（3秒），家长随时回放；纯本地存储，明确无上传
+- **恐龙明信片**：通关后生成 1080×1080px 明信片（含孩子昵称+日期+词汇），一键截图发朋友圈
+- **多孩子档案**：同设备最多3个独立档案，词汇进度和录音分开存储
+
+---
+
+## 四根设计柱
+
+| # | Pillar | 反面（明确不做） |
+|---|--------|---------------|
+| P1 | **看不见的学习** — 界面里没有「学英语」，只有「你看到了什么？」 | ❌ 测验界面、红对勾、计分板 |
+| P2 | **失败是另一条好玩的路** — confused 动画要好笑，重试按钮要鼓励 | ❌ 计时压力、倒计时条、红色错误反馈 |
+| P3 | **声音是成长的日记** — 孩子的第一声「T-Rex!」被悄悄录下 | ❌ 强制录音，拒绝权限后功能静默禁用 |
+| P4 | **家长是骄傲见证者，不是监工** — 词汇金星不需要解释 | ❌ 强制家长登录、必须设置 PIN |
+
+---
+
+## 技术架构
+
+```
+ink 脚本层（assets/data/chapter1.ink）
+  ├── 对话流 + 选项控制（#tts:WORD 触发发音）
+  ├── 剧情分支（#animate:NAME_STATE 触发动画）
+  ├── 词汇记录（ink变量 + VocabStore 写入）
+  └── NPC 记忆（times_played 变量注入）
+           ↓
+inkgd 运行时（GDScript 原生插件，ephread/inkgd）
+  └── 解析 ink 输出 → TagDispatcher 分发到各系统
+           ↓
+Godot 4.x Standard 引擎层
+  ├── AnimationPlayer：16个状态（12词汇变体 + celebrate×2 + recognize + end_b_wave）
+  ├── DisplayServer.tts_speak()：设备内置 TTS（无需外部 API）
+  ├── AudioStreamMicrophone + AudioEffectCapture：本地录音（GDScript 原生，无 JNI）
+  └── 明信片生成器（固定模板叠加，无 Viewport 截图，无存储权限需求）
+           ↓
+本地持久化（Godot SaveGame，schema v2 多档案）
+  ├── profiles/{id}/vocab：词汇 seen/correct 计数
+  ├── profiles/{id}/recordings：声音回忆本路径
+  └── profiles/{id}/times_played：NPC 记忆驱动
+```
+
+**最低支持**：Android API 24（Android 7.0）
+
+---
+
+## 18 个系统，4 个依赖层
+
+| 层 | 系统 | 状态 |
+|----|------|------|
+| **Foundation** | SaveSystem | ✅ 已实现（原子写 + schema迁移） |
+| **Core** | ProfileManager, VocabStore, AnimationHandler, TtsBridge, VoiceRecorder, InterruptHandler, AudioManager | 设计完成，待实现 |
+| **Narrative** | StoryManager, TagDispatcher | 设计完成，待实现 |
+| **UI** | ChoiceUI, MainMenu, HatchScene, NameInputScreen, RecordingInviteUI, VocabPrimingLoader | 设计完成，待实现 |
+| **Meta** | PostcardGenerator, ParentVocabMap, Chapter2Teaser | 设计完成，待实现 |
+
+设计文档：[design/gdd/systems-index.md](design/gdd/systems-index.md) · 架构决策：[docs/architecture/](docs/architecture/)（ADR-0001 ~ ADR-0024）
+
+---
+
+## 项目结构
+
+```
+baby-play/
+├── CLAUDE.md                     # AI 协作主配置（49 agents，72 skills）
+├── assets/data/                  # ink 叙事脚本
+├── src/
+│   ├── autoload/                 # Godot AutoLoad 系统（SaveSystem 等）
+│   ├── core/                     # TtsBridge, VoiceRecorder, AnimationHandler
+│   ├── feature/                  # StoryManager, TagDispatcher, VocabStore
+│   ├── foundation/               # ProfileManager, SaveSystem
+│   └── presentation/             # UI 场景（ChoiceUI, MainMenu, PostcardGenerator…）
+├── design/
+│   ├── gdd/                      # 18 份游戏设计文档（已通过 /review-all-gdds 交叉审查）
+│   ├── art/art-bible.md          # 视觉规范（温暖绘本风，色彩令牌系统）
+│   └── ux/interaction-patterns.md
+├── docs/architecture/            # ADR-0001~0024 + 控制手册 + TR 追溯矩阵
+├── production/                   # 冲刺计划、里程碑、风险登记册
+└── tests/                        # GUT 测试框架（单元 + 集成）
+```
+
+---
+
+## AI 驱动的开发方式
+
+本项目是用 **[Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios)** 模板驱动开发的真实案例。该模板将单次 Claude Code 会话变成一个虚拟游戏工作室——49 个专业 AI 代理，72 个工作流技能，12 个自动化钩子。
+
+**已完成的 AI 驱动工作流：**
+
+| 工作流 | 产出物 | AI 代理 |
+|--------|--------|--------|
+| `/plan-ceo-review` (×2) | CEO 战略计划（v2 SCOPE EXPANSION） | CEO + 产品 |
+| `/map-systems` | 18 个系统依赖图谱 | 技术总监 + 系统设计师 |
+| `/design-system` (×18) | 18 份 GDD（每份 8 个必需章节） | 游戏设计师 + 叙事总监 |
+| `/review-all-gdds` | 全文档交叉一致性检查（18/18 通过） | QA 主管 + 创意总监 |
+| `/art-bible` | 色彩系统、字体规范、动画节奏规范 | 艺术总监 |
+| `/create-architecture` | 主架构文档 + ADR-0001~0024 | 技术总监 + 引擎专家 |
+| `/architecture-review` | 架构可追溯矩阵，PASS 评级 | 技术总监 |
+| `/create-control-manifest` | 程序员控制手册（Forbidden/Required/Guardrails） | 首席程序员 |
+| `/sprint-plan` | Sprint 1 计划 + 里程碑 + 风险登记册 | 制作人 |
+| `dev-story` | SaveSystem 完整实现（原子写 + 迁移） | Godot GDScript 专家 |
+
+---
+
+## 当前状态
+
+**阶段**：Pre-Production（设计完成，Sprint 1 进行中）
+
+- ✅ 所有 18 份 GDD 已审查并批准
+- ✅ 架构文档 + 24 条 ADR 已完成
+- ✅ SaveSystem 已实现（原子写，schema v2 多档案）
+- ✅ 艺术风格规范、色彩系统、可访问性需求已锁定
+- ✅ Sprint 1 计划就绪（Godot + inkgd + Android APK 验证）
+- 🚧 核心系统实现中（VocabStore, StoryManager, TtsBridge…）
+- 📅 目标：4 周内 APK 可分发，侄女首轮测试
+
+---
+
+## License
+
+[MIT](LICENSE)
 
 - **[Buy Me a Coffee](https://www.buymeacoffee.com/donchitos3)** — one-time support
 - **[GitHub Sponsors](https://github.com/sponsors/Donchitos)** — recurring support through GitHub
